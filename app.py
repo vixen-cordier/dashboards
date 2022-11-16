@@ -1,7 +1,6 @@
-import gspread as gs 
 import streamlit as st
+import gspread as gs 
 import pandas as pd
-import time
 import plotly.graph_objects as go
 
 gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
