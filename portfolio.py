@@ -1,6 +1,8 @@
 import gspread as gs
 import pandas as pd
 
+key = 
+
 gc = gs.service_account(filename='cred-api-sheets.json')
 
 ss_portfolio_key = '1xhq1RGQLcuUVr88-5Gl4tEvY0eI5M_i8TkkzRZwSC80'
