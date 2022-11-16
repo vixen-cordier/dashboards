@@ -1,3 +1,3 @@
-gspread
-pandas
-plotly
+gspread==5.7.0
+pandas==1.4.4
+plotly==5.10.0
