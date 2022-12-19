@@ -2,42 +2,137 @@ import streamlit as st
 import gspread as gs 
 import pandas as pd
 import numpy as np
-import datetime as dt
 import yfinance as yf
 import plotly.graph_objects as go
+from typing import Dict
 
-## Connect to Google Sheet
+
+# ----------------------------------------------
+# Get data, concate, merge and extract metrics
+# for portfolio Dashboard 
+# ----------------------------------------------
+
+### Connect to Google Sheet
 gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
-ss_portfolio = gc.open_by_key(st.secrets['portfolio'].spreadsheet_key).worksheet(st.secrets['portfolio'].worksheet_name)
+ss = gc.open_by_key(st.secrets['portfolio'].spreadsheet_key)
+ws_operation = ss.worksheet('Operations')
+ws_greenbull = ss.worksheet('GREENBULL')
+ws_dict = ss.worksheet('Dict')
 
-## Get data from Spreadsheet
-df_portfolio = pd.DataFrame(ss_portfolio.get_all_records())
-# Rework data
-eurusd: pd.DataFrame = yf.download('EURUSD=X', start=min(df_portfolio['Date']))[['Close']]
-df_portfolio['EURUSD'] = [eurusd[eurusd.index == df_portfolio.loc[idx]['Date']]['Close'].values[0] for idx in df_portfolio.index]
-df_portfolio['Total€'] = [df_portfolio.loc[idx]['Total'] / (1 if df_portfolio.loc[idx]['Currency'] == "€" else df_portfolio.loc[idx]['EURUSD']) for idx in df_portfolio.index]
 
-## Create sub dataframe to filter data
-# All Deposit
-df_deposit = df_portfolio[(df_portfolio['Portfolio'] == "ZEN REMIX") & (df_portfolio['Asset'].str.contains("Deposit"))]
-df_deposit = df_deposit.groupby('Date').agg({'Total€': "sum"})
-df_deposit['Deposit€'] = [np.sum(df_deposit.loc[:idx]['Total€']) for idx in df_deposit.index]
-# All investment
-df_invested = df_portfolio[(df_portfolio['Portfolio'] == "ZEN REMIX") & (~df_portfolio['Asset'].str.contains("Deposit"))]
-df_invested = df_invested.groupby('Date').agg({'Total€': "sum"})
-df_invested['Invested€'] = [np.sum(df_invested.loc[:idx]['Total€']) for idx in df_invested.index]
+### Get asset list and fetch data fom yahoo finance
+greenbull = pd.DataFrame(ws_greenbull.get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
+dict = pd.DataFrame(ws_dict.get_all_records())
 
-## Build dataframe to display it
-df = pd.DataFrame({'Date': pd.date_range(start=min(df_portfolio['Date']), end=dt.datetime.now())})
-df = df.merge(df_invested.reset_index()[['Date', 'Invested€']].astype({'Date': 'datetime64[ns]', 'Invested€': 'int64'}), on='Date', how='left').ffill()
-df = df.merge(df_deposit.reset_index()[['Date', 'Deposit€']].astype({'Date': 'datetime64[ns]', 'Deposit€': 'int64'}), on='Date', how='left').ffill()
+assets: Dict[str,str] = dict[['Asset', 'Market', 'Currency']].set_index('Asset').to_dict()
+print(assets['Market'])
+print(assets['Currency'])
+market = yf.download(' '.join(list(assets['Market'].values())[:-1]), start='2021-04-01')['Close']
+market = pd.concat([market, greenbull], axis=1)
+market = pd.concat([market], keys=['Market'], axis=1)
+market = pd.concat([market], keys=['Cotation'], axis=1)
 
-## Streamlit elements
-# st.write(df_portfolio)
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=df['Date'], y=df['Deposit€']))
-fig.add_trace(go.Scatter(x=df['Date'], y=df['Invested€']))
-st.plotly_chart(fig)
+depots: Dict[str,str] = dict[['Depot', 'Forex']].set_index('Depot').to_dict()
+print(depots['Forex'])
+forex: pd.DataFrame = yf.download(' '.join(list(depots['Forex'].values())), start='2021-04-01')['Close']
+forex = pd.concat([forex], keys=['Forex'], axis=1)
+forex = pd.concat([forex], keys=['Cotation'], axis=1)
 
-with st.expander("Source dataframe"):
-    st.write(df_portfolio)
+df = pd.concat([market, forex], axis=1).ffill().bfill()
+
+
+### Get all operation from Spreadsheet, merge and calculate all portfolio metrics
+ope = pd.DataFrame(ws_operation.get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
+
+for portfolio in np.unique(ope['Portfolio']):
+    dfp: pd.DataFrame = ope[ope['Portfolio'] == portfolio]
+    print('', portfolio)
+
+    for asset in np.unique(dfp['Asset']):
+        dfa: pd.DataFrame = dfp[dfp['Asset'] == asset]
+        dfa = dfa.groupby('Date').agg({'Amount': "sum", 'Total': "sum"})#, 'TotalEUR': "sum"})
+        print('  ', asset)
+
+        amt, tot = pd.Series(dtype=float), pd.Series(dtype=float)
+        for idx in dfa.index:
+            amt[idx] = np.sum(dfa.loc[:idx]['Amount'])
+            tot[idx] = np.sum(dfa.loc[:idx]['Total'])
+
+        if asset in assets['Market'].keys():
+            df = pd.concat([df, pd.DataFrame({
+                ('Position', portfolio, asset): amt,
+                ('Invested', portfolio, asset): tot,
+            })], axis=1).ffill().fillna(0)
+
+            df['InvestedEUR', portfolio, asset] = df['Invested', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
+            df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Position', portfolio, asset]
+            df['Value', portfolio, asset] = df['Position', portfolio, asset] * df['Cotation', 'Market', assets['Market'][asset]]
+            df['ValueEUR', portfolio, asset] = df['Value', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
+            df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
+            df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
+
+        elif asset in depots['Forex'].keys():
+            df = pd.concat([df, pd.DataFrame({
+                ('Amount', portfolio, asset): amt,
+                ('Deposit', portfolio, asset): tot,
+            })], axis=1).ffill().fillna(0)
+
+            df['DepositEUR', portfolio, asset] = df['Deposit', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
+            # df['PnL', portfolio, asset] = df['Deposit', portfolio, asset] - df['DepositEUR', portfolio, asset]
+            # df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
+            
+    if 'DepositEUR' in df.columns and portfolio in df['DepositEUR'].columns:
+        df['DepositEUR', portfolio, 'All'] = df['DepositEUR', portfolio].sum(axis=1)
+    if 'InvestedEUR' in df.columns and portfolio in df['InvestedEUR'].columns:
+        df['InvestedEUR', portfolio, 'All'] = df['InvestedEUR', portfolio].sum(axis=1)
+    if 'ValueEUR' in df.columns and portfolio in df['ValueEUR'].columns:
+        df['ValueEUR', portfolio, 'All'] = df['ValueEUR', portfolio].sum(axis=1)
+    if 'PnLEUR' in df.columns and portfolio in df['PnLEUR'].columns:
+        df['PnLEUR', portfolio, 'All'] = df['PnLEUR', portfolio].sum(axis=1)
+
+
+# ----------------------------------------------
+# Dashboard construction
+# by Streamlit
+# ----------------------------------------------
+st.set_page_config(layout="wide")
+st.title("Portfolio Dashboard")
+
+portfo = st.selectbox(
+    "Select portfolio",
+    ("Email", "Home phone", "Mobile phone")
+)
+
+metric = st.radio(
+    "Set selectbox label visibility ??",
+    key="visibility",
+    options=["visible", "hidden", "collapsed"],
+)
+
+tab1, tab2, tab3 = st.tabs(["Overview", "Assets", "Data"])
+
+with tab1:
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', 'ZEN', 'All'], name='Deposit'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['InvestedEUR', 'ZEN', 'All'], name='Invested'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', 'ZEN', 'All'], name='Value'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', 'ZEN', 'All'], name='PnL'))
+    # for asset in df['PnLEUR', 'ZEN'].columns:
+    #     print(asset)
+    #     fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', 'ZEN', asset], name=asset))
+    st.plotly_chart(fig)
+
+with tab2:
+    fig = go.Figure()
+    for asset in df['PnLEUR', 'ZEN'].columns:
+        print(asset)
+        fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', 'ZEN', asset], name=asset))
+    st.plotly_chart(fig)
+
+with tab3:
+   st.header("An owl")
+   st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
+
+
+with st.expander("Operation spreadcheet"):
+    st.write(ope)
