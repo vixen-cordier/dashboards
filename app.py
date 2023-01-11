@@ -1,3 +1,4 @@
+
 import streamlit as st
 import gspread as gs 
 import pandas as pd
@@ -5,6 +6,8 @@ import numpy as np
 import yfinance as yf
 import plotly.graph_objects as go
 
+import warnings
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 # ----------------------------------------------
 # Get data, concate, merge and extract metrics
@@ -48,6 +51,11 @@ def fetch_forex(depots):
 
 def build_metrics(assets, market, depots, forex, operation):
     df = pd.concat([market, forex], axis=1).ffill().bfill()
+    df['DepositEUR', 'All', 'All'] = 0
+    df['InvestedEUR', 'All', 'All'] = 0
+    df['ValueEUR', 'All', 'All'] = 0
+    df['PnLEUR', 'All', 'All'] = 0
+    df['CashEUR', 'All', 'All'] = 0
 
     for portfolio in np.unique(operation['Portfolio']):
         dfp: pd.DataFrame = operation[operation['Portfolio'] == portfolio]
@@ -65,13 +73,13 @@ def build_metrics(assets, market, depots, forex, operation):
 
             if asset in assets['Market'].keys():
                 df = pd.concat([df, pd.DataFrame({
-                    ('Position', portfolio, asset): amt,
+                    ('Amount', portfolio, asset): amt,
                     ('Invested', portfolio, asset): tot,
                 })], axis=1).ffill().fillna(0)
 
                 df['InvestedEUR', portfolio, asset] = df['Invested', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
-                df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Position', portfolio, asset]
-                df['Value', portfolio, asset] = df['Position', portfolio, asset] * df['Cotation', 'Market', assets['Market'][asset]]
+                df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Amount', portfolio, asset]
+                df['Value', portfolio, asset] = df['Amount', portfolio, asset] * df['Cotation', 'Market', assets['Market'][asset]]
                 df['ValueEUR', portfolio, asset] = df['Value', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
                 df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
                 df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
@@ -86,6 +94,7 @@ def build_metrics(assets, market, depots, forex, operation):
                 # df['PnL', portfolio, asset] = df['Deposit', portfolio, asset] - df['DepositEUR', portfolio, asset]
                 # df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
                 
+
         if 'DepositEUR' in df.columns and portfolio in df['DepositEUR'].columns:
             df['DepositEUR', portfolio, 'All'] = df['DepositEUR', portfolio].sum(axis=1)
         else:
@@ -102,12 +111,16 @@ def build_metrics(assets, market, depots, forex, operation):
             df['ValueEUR', portfolio, 'All'] = df['ValueEUR', portfolio].sum(axis=1)
         else:
             df['ValueEUR', portfolio, 'All'] = 0
-            # df['ValueEUR', 'All', 'All'] += df['ValueEUR', portfolio, 'All']
+        df['ValueEUR', 'All', 'All'] += df['ValueEUR', portfolio, 'All']
+
         if 'PnLEUR' in df.columns and portfolio in df['PnLEUR'].columns:
             df['PnLEUR', portfolio, 'All'] = df['PnLEUR', portfolio].sum(axis=1)
         else:
             df['PnLEUR', portfolio, 'All'] = 0
-            # df['PnLEUR', 'All', 'All'] += df['PnLEUR', portfolio, 'All']
+        df['PnLEUR', 'All', 'All'] += df['PnLEUR', portfolio, 'All']
+
+        df['CashEUR', portfolio, 'All'] = df['DepositEUR', portfolio, 'All'] - df['InvestedEUR', portfolio, 'All']
+        df['CashEUR', 'All', 'All'] += df['CashEUR', portfolio, 'All']
 
     return df
 
@@ -125,47 +138,57 @@ data = build_metrics(sheets['Dicts']['assets'], market, sheets['Dicts']['depots'
 st.set_page_config(layout="wide")
 
 st.title("Portfolio Dashboard")
+all_tab, zen_tab, dma_tab = st.tabs(["Overview", "ZEN", "DMA"])
 
-# ptfs = np.unique(sheets['Operation']['Portfolio'])
+df = data[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
 
+with all_tab:
+    s_all = df.iloc[-1]
+    df_all = pd.concat({ 
+        'All' : s_all[:, 'All', 'All'],  
+        'ZEN' : s_all[:, 'ZEN', 'All'],  
+        'DMA' : s_all[:, 'DMA', 'All']
+    }, axis=1) 
+    st.dataframe(df_all.transpose().style.format("{:.0f}"))
 
-# with st.container():
-#     cols = st.columns([1 for _ in range(len(ptfs))] + [15 - len(ptfs)])
-#     for idx in range(len(ptfs)):
-#         with cols[idx]:
-#             display = st.checkbox(ptfs[idx])
-
-portfo = st.radio(
-    "Select a portfolio :",
-    options = np.unique(sheets['Operation']['Portfolio']),
-    horizontal = True
-)
-
-st.write(data[:, portfo])
-
-tab1, tab2, tab3 = st.tabs(["Overview", "Assets", "Dataframe"])
-
-with tab1:
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data.index, y=data['DepositEUR', portfo, 'All'], name='Deposit'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['InvestedEUR', portfo, 'All'], name='Invested'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['ValueEUR', portfo, 'All'], name='Value'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', portfo, 'All'], name='PnL'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['ValueEUR', 'All', 'All'], name='Value'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['InvestedEUR', 'All', 'All'], name='Invested'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['CashEUR', 'All', 'All'], name='Cash'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', 'All', 'All'], name='PnL'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['DepositEUR', 'All', 'All'], name='Deposit'))
     st.plotly_chart(fig)
 
-with tab2:
-    metric = st.radio(
-        "Metric to display :",
-        options = ["Invested", "Value", "PnL"],
-        horizontal = True
-    )
-    fig = go.Figure()
-    for asset in data[f'{metric}EUR', portfo].columns:
-        fig.add_trace(go.Scatter(x=data.index, y=data[f'{metric}EUR', portfo, asset], name=asset))
-    st.plotly_chart(fig)
 
-with tab3:
-   st.write(sheets['Operation'])
+
+
+
+# st.write(data[:, portfo])
+
+# tab1, tab2, tab3 = st.tabs(["Overview", "Assets", "Dataframe"])
+
+# with tab1:
+#     fig = go.Figure()
+#     fig.add_trace(go.Scatter(x=data.index, y=data['DepositEUR', portfo, 'All'], name='Deposit'))
+#     fig.add_trace(go.Scatter(x=data.index, y=data['InvestedEUR', portfo, 'All'], name='Invested'))
+#     fig.add_trace(go.Scatter(x=data.index, y=data['ValueEUR', portfo, 'All'], name='Value'))
+#     fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', portfo, 'All'], name='PnL'))
+#     fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', portfo, 'All'], name='PnL'))
+#     st.plotly_chart(fig)
+
+# with tab2:
+#     metric = st.radio(
+#         "Metric to display :",
+#         options = ["Invested", "Value", "PnL"],
+#         horizontal = True
+#     )
+#     fig = go.Figure()
+#     for asset in data[f'{metric}EUR', portfo].columns:
+#         fig.add_trace(go.Scatter(x=data.index, y=data[f'{metric}EUR', portfo, asset], name=asset))
+#     st.plotly_chart(fig)
+
+# with tab3:
+#    st.write(sheets['Operation'])
 
 
 # with st.expander("Operation spreadcheet, data source"):
