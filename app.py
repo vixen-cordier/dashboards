@@ -167,7 +167,7 @@ with all_tab:
             'Cash' : df['CashEUR', 'All', 'All']
         }, axis=1) 
         s_pie = df_pie.iloc[-1]
-        fig = go.Figure(data=[go.Pie(values=s_pie.values, labels=s_pie.index)])
+        fig = go.Figure(go.Pie(values=s_pie.values, labels=s_pie.index))
         st.plotly_chart(fig)
     
     with lin_col:
@@ -208,5 +208,7 @@ with all_tab:
 #    st.write(sheets['Operation'])
 
 
-# with st.expander("Operation spreadcheet, data source"):
-#     st.write(sheets['Operation'])
+with st.expander("Operation spreadcheet, data source"):
+    st.write(sheets['Operation'])
+with st.expander("df"):
+    st.write(data.loc[:, pd.IndexSlice[:, ['Forex', 'ZEN'], 'All']])
