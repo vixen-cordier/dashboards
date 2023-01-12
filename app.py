@@ -141,23 +141,40 @@ st.title("Portfolio Dashboard")
 all_tab, zen_tab, dma_tab = st.tabs(["Overview", "ZEN", "DMA"])
 
 df = data[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
+s = df.iloc[-1]
 
 with all_tab:
-    s_all = df.iloc[-1]
     df_all = pd.concat({ 
-        'All' : s_all[:, 'All', 'All'],  
-        'ZEN' : s_all[:, 'ZEN', 'All'],  
-        'DMA' : s_all[:, 'DMA', 'All']
+        'All' : s[:, 'All', 'All'],  
+        'ZEN' : s[:, 'ZEN', 'All'],  
+        'DMA' : s[:, 'DMA', 'All']
     }, axis=1) 
     st.dataframe(df_all.transpose().style.format("{:.0f}"))
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data.index, y=data['ValueEUR', 'All', 'All'], name='Value'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['InvestedEUR', 'All', 'All'], name='Invested'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['CashEUR', 'All', 'All'], name='Cash'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', 'All', 'All'], name='PnL'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['DepositEUR', 'All', 'All'], name='Deposit'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', 'All', 'All'], name='Value'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['InvestedEUR', 'All', 'All'], name='Invested'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', 'All', 'All'], name='Cash'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', 'All', 'All'], name='PnL'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', 'All', 'All'], name='Deposit'))
     st.plotly_chart(fig)
+
+    pie_col, lin_col = st.columns([2, 5])
+    with pie_col:
+        df_pie = pd.concat({ 
+            'ZEN' : df['ValueEUR', 'ZEN', 'All'],  
+            'DMA' : df['ValueEUR', 'DMA', 'All'],  
+            'Cash' : df['CashEUR', 'All', 'All']
+        }, axis=1) 
+        s_pie = df_pie.iloc[-1]
+        fig = go.Figure(data=[go.Pie(values=s_pie.values, labels=s_pie.index)])
+        st.plotly_chart(fig)
+    
+    with lin_col:
+        fig = go.Figure(go.Scatter(x=df_pie.index, y=df_pie['ZEN'], name='ZEN'))#, stackgroup='one', groupnorm='percent'))
+        fig.add_trace(go.Scatter(x=df_pie.index, y=df_pie['DMA'], name='DMA'))#, stackgroup='one'))
+        fig.add_trace(go.Scatter(x=df_pie.index, y=df_pie['Cash'], name='Cash'))#, stackgroup='one'))
+        st.plotly_chart(fig)
 
 
 
