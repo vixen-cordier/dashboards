@@ -9,10 +9,12 @@ import plotly.graph_objects as go
 import warnings
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+print("""
 # ----------------------------------------------
 # Get data, concate, merge and extract metrics
 # for portfolio Dashboard 
 # ----------------------------------------------
+""")
 
 def extract_sheets():
     gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
@@ -131,16 +133,29 @@ forex = fetch_forex(sheets['Dicts']['depots'])
 data = build_metrics(sheets['Dicts']['assets'], market, sheets['Dicts']['depots'], forex, sheets['Operation'])
 
 
+print("""
 # ----------------------------------------------
 # Dashboard construction
 # by Streamlit
 # ----------------------------------------------
+""")
+
 st.set_page_config(layout="wide")
 
 st.title("Portfolio Dashboard")
-all_tab, zen_tab, dma_tab = st.tabs(["Overview", "ZEN", "DMA"])
+st.write("""
+<style>
+button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+    font-weight: bold;
+    font-size: 32px;
+}
+</style>
+""", unsafe_allow_html=True)
 
-df = data[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
+
+all_tab, zen_tab, dma_tab = st.tabs(["   Overview   ", "   ZEN   ", "   DMA   "])
+
+df = data[['ValueEUR', 'InvestedEUR', 'PnLEUR', 'CashEUR', 'DepositEUR']]
 s = df.iloc[-1]
 
 with all_tab:
@@ -154,61 +169,89 @@ with all_tab:
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', 'All', 'All'], name='Value'))
     fig.add_trace(go.Scatter(x=df.index, y=df['InvestedEUR', 'All', 'All'], name='Invested'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', 'All', 'All'], name='Cash'))
     fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', 'All', 'All'], name='PnL'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', 'All', 'All'], name='Cash'))
     fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', 'All', 'All'], name='Deposit'))
     st.plotly_chart(fig)
 
-    pie_col, lin_col = st.columns([2, 5])
+    pie_col, _, lin_col = st.columns([2, 1, 4])
     with pie_col:
-        df_pie = pd.concat({ 
+        df_all = pd.concat({ 
             'ZEN' : df['ValueEUR', 'ZEN', 'All'],  
             'DMA' : df['ValueEUR', 'DMA', 'All'],  
             'Cash' : df['CashEUR', 'All', 'All']
         }, axis=1) 
-        s_pie = df_pie.iloc[-1]
-        fig = go.Figure(go.Pie(values=s_pie.values, labels=s_pie.index))
+        s_all = df_all.iloc[-1]
+        fig = go.Figure(go.Pie(values=s_all.values, labels=s_all.index))
         st.plotly_chart(fig)
     
     with lin_col:
-        fig = go.Figure(go.Scatter(x=df_pie.index, y=df_pie['ZEN'], name='ZEN'))#, stackgroup='one', groupnorm='percent'))
-        fig.add_trace(go.Scatter(x=df_pie.index, y=df_pie['DMA'], name='DMA'))#, stackgroup='one'))
-        fig.add_trace(go.Scatter(x=df_pie.index, y=df_pie['Cash'], name='Cash'))#, stackgroup='one'))
+        fig = go.Figure(go.Scatter(x=df_all.index, y=df_all['ZEN'], name='ZEN', stackgroup='one', groupnorm='percent'))
+        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['DMA'], name='DMA', stackgroup='one'))
+        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['Cash'], name='Cash', stackgroup='one'))
         st.plotly_chart(fig)
 
 
+def datatable_ptf(s, ptf):
+    rows = {}
+    rows['All'] = s[:, ptf, 'All']
+    for asset in s['ValueEUR', ptf].index:
+        if asset != 'All':
+            rows[asset] = s[:, ptf, asset]
+    table = pd.concat(rows, axis=1) 
+    st.dataframe(table.transpose().style.format("{:.0f}"))
+
+def scatter_ptf(df, ptf):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, 'All'], name='Value'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['InvestedEUR', ptf, 'All'], name='Invested'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', ptf, 'All'], name='PnL'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', ptf, 'All'], name='Cash'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', ptf, 'All'], name='Deposit'))
+    st.plotly_chart(fig)
+
+def scatter_metric(df, ptf, metric):
+    fig = go.Figure()
+    for asset in df[metric, ptf].columns:
+        fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, asset], name=asset))
+    st.plotly_chart(fig)
+
+def pie_metric(s, ptf, metric):
+    value = []
+    label = []
+    for asset in s[metric, ptf].index:
+        if asset != 'All':
+            value.append(s[metric, ptf, asset])
+            label.append(asset)
+    fig = go.Figure(go.Pie(values=value, labels=label))
+    st.plotly_chart(fig)
+
+def stack_metric(df, ptf, metric):
+    fig = go.Figure()
+    for asset in df[metric, ptf].columns:
+        if asset != 'All':
+            fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, asset], name=asset, stackgroup='one', groupnorm='percent'))
+    st.plotly_chart(fig)
+
+
+with zen_tab:
+    datatable_ptf(s, 'ZEN')
+    scatter_ptf(df, 'ZEN')
+
+    st.header("ZEN Value")
+    scatter_metric(df, 'ZEN', 'ValueEUR')
+
+    pie_col, lin_col = st.columns([1, 2])
+    with pie_col:
+        pie_metric(s, 'ZEN', 'ValueEUR')
+
+    with lin_col:
+        stack_metric(df, 'ZEN', 'ValueEUR')
 
 
 
-# st.write(data[:, portfo])
 
-# tab1, tab2, tab3 = st.tabs(["Overview", "Assets", "Dataframe"])
-
-# with tab1:
-#     fig = go.Figure()
-#     fig.add_trace(go.Scatter(x=data.index, y=data['DepositEUR', portfo, 'All'], name='Deposit'))
-#     fig.add_trace(go.Scatter(x=data.index, y=data['InvestedEUR', portfo, 'All'], name='Invested'))
-#     fig.add_trace(go.Scatter(x=data.index, y=data['ValueEUR', portfo, 'All'], name='Value'))
-#     fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', portfo, 'All'], name='PnL'))
-#     fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', portfo, 'All'], name='PnL'))
-#     st.plotly_chart(fig)
-
-# with tab2:
-#     metric = st.radio(
-#         "Metric to display :",
-#         options = ["Invested", "Value", "PnL"],
-#         horizontal = True
-#     )
-#     fig = go.Figure()
-#     for asset in data[f'{metric}EUR', portfo].columns:
-#         fig.add_trace(go.Scatter(x=data.index, y=data[f'{metric}EUR', portfo, asset], name=asset))
-#     st.plotly_chart(fig)
-
-# with tab3:
-#    st.write(sheets['Operation'])
-
-
-with st.expander("Operation spreadcheet, data source"):
-    st.write(sheets['Operation'])
-with st.expander("df"):
-    st.write(data.loc[:, pd.IndexSlice[:, ['Forex', 'ZEN'], 'All']])
+# with st.expander("Operation spreadcheet, data source"):
+#     st.write(sheets['Operation'])
+# with st.expander("df"):
+#     st.write(data.loc[:, pd.IndexSlice[:, ['Forex', 'ZEN'], 'All']])
