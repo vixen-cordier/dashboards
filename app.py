@@ -164,7 +164,7 @@ with all_tab:
         'ZEN' : s[:, 'ZEN', 'All'],  
         'DMA' : s[:, 'DMA', 'All']
     }, axis=1) 
-    st.dataframe(df_all.transpose().style.format("{:.0f}"))
+    st.dataframe(df_all.transpose().style.format("{:.0f}"), use_container_width=True)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', 'All', 'All'], name='Value'))
@@ -174,6 +174,7 @@ with all_tab:
     fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', 'All', 'All'], name='Deposit'))
     st.plotly_chart(fig)
 
+    st.header("Portfolio repartition")
     pie_col, _, lin_col = st.columns([2, 1, 4])
     with pie_col:
         df_all = pd.concat({ 
@@ -192,6 +193,26 @@ with all_tab:
         st.plotly_chart(fig)
 
 
+    st.header("Portfolio performance")
+    pie_col, _, lin_col = st.columns([2, 1, 4])
+    with pie_col:
+        df_all = pd.concat({ 
+            'ZEN' : df['ValueEUR', 'ZEN', 'All'],  
+            'DMA' : df['ValueEUR', 'DMA', 'All'],  
+            'Cash' : df['CashEUR', 'All', 'All']
+        }, axis=1) 
+        s_all = df_all.iloc[-1]
+        fig = go.Figure(go.Pie(values=s_all.values, labels=s_all.index))
+        st.plotly_chart(fig)
+    
+    with lin_col:
+        fig = go.Figure(go.Scatter(x=df_all.index, y=df_all['ZEN'], name='ZEN', stackgroup='one', groupnorm='percent'))
+        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['DMA'], name='DMA', stackgroup='one'))
+        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['Cash'], name='Cash', stackgroup='one'))
+        st.plotly_chart(fig)
+
+
+
 def datatable_ptf(s, ptf):
     rows = {}
     rows['All'] = s[:, ptf, 'All']
@@ -199,7 +220,7 @@ def datatable_ptf(s, ptf):
         if asset != 'All':
             rows[asset] = s[:, ptf, asset]
     table = pd.concat(rows, axis=1) 
-    st.dataframe(table.transpose().style.format("{:.0f}"))
+    st.dataframe(table.transpose().style.format("{:.0f}"), use_container_width=True)
 
 def scatter_ptf(df, ptf):
     fig = go.Figure()
