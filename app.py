@@ -153,7 +153,7 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 """, unsafe_allow_html=True)
 
 
-all_tab, zen_tab, dma_tab = st.tabs(["   Overview   ", "   ZEN   ", "   DMA   "])
+all_tab, zen_tab, dma_tab = st.tabs(["Overview", "ZEN", "DMA"])
 
 df = data[['ValueEUR', 'InvestedEUR', 'PnLEUR', 'CashEUR', 'DepositEUR']]
 s = df.iloc[-1]
@@ -194,22 +194,14 @@ with all_tab:
 
 
     st.header("Portfolio performance")
-    pie_col, _, lin_col = st.columns([2, 1, 4])
-    with pie_col:
-        df_all = pd.concat({ 
-            'ZEN' : df['ValueEUR', 'ZEN', 'All'],  
-            'DMA' : df['ValueEUR', 'DMA', 'All'],  
-            'Cash' : df['CashEUR', 'All', 'All']
-        }, axis=1) 
-        s_all = df_all.iloc[-1]
-        fig = go.Figure(go.Pie(values=s_all.values, labels=s_all.index))
-        st.plotly_chart(fig)
-    
-    with lin_col:
-        fig = go.Figure(go.Scatter(x=df_all.index, y=df_all['ZEN'], name='ZEN', stackgroup='one', groupnorm='percent'))
-        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['DMA'], name='DMA', stackgroup='one'))
-        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['Cash'], name='Cash', stackgroup='one'))
-        st.plotly_chart(fig)
+    df_all = pd.concat({ 
+        'ZEN' : df['PnLEUR', 'ZEN', 'All'],  
+        'DMA' : df['PnLEUR', 'DMA', 'All'],  
+        'All' : df['PnLEUR', 'All', 'All']
+    }, axis=1) 
+    s_all = df_all.iloc[-1]
+    fig = go.Figure(go.Bar(x=s_all.index, y=s_all.values))
+    st.plotly_chart(fig)
 
 
 
@@ -254,6 +246,15 @@ def stack_metric(df, ptf, metric):
             fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, asset], name=asset, stackgroup='one', groupnorm='percent'))
     st.plotly_chart(fig)
 
+def bar_metric(s, ptf, metric):
+    value = []
+    label = []
+    for asset in s[metric, ptf].index:
+        value.append(s[metric, ptf, asset])
+        label.append(asset)
+    fig = go.Figure(go.Bar(x=label, y=value))
+    st.plotly_chart(fig)
+
 
 with zen_tab:
     datatable_ptf(s, 'ZEN')
@@ -269,6 +270,8 @@ with zen_tab:
     with lin_col:
         stack_metric(df, 'ZEN', 'ValueEUR')
 
+    st.header("ZEN Performance")
+    bar_metric(s, 'ZEN', 'PnLEUR')
 
 
 
