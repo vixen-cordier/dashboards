@@ -21,11 +21,9 @@ ss = gc.open_by_key(st.secrets['portfolio'].spreadsheet_key)
 dicts = pd.DataFrame(ss.worksheet('Dict').get_all_records())
 operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
 greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
-assets = pd.DataFrame(dicts[['Asset', 'Market', 'Currency']].set_index('Asset').to_dict()),
-depots = pd.DataFrame(dicts[['Depot', 'Forex']].set_index('Depot').to_dict())
+assets = dicts[['Asset', 'Market', 'Currency']].set_index('Asset')
+depots = dicts[['Depot', 'Forex']].set_index('Depot')
 
-print(list(assets['Market']))
-print(depots)
 
 market = yf.download(' '.join(list(assets['Market'])[:-1]), start='2021-04-01')['Close']
 market = pd.concat([market, greenbull], axis=1)
@@ -133,9 +131,6 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 
 all_tab, zen_tab, dma_tab = st.tabs(["Overview", "ZEN", "DMA"])
 
-data = df[['ValueEUR', 'InvestedEUR', 'PnLEUR', 'CashEUR', 'DepositEUR']]
-s = df.iloc[-1]
-
 with all_tab:
     df_all = pd.concat({ 
         'All' : s[:, 'All', 'All'],  
@@ -145,11 +140,11 @@ with all_tab:
     st.dataframe(df_all.transpose().style.format("{:.0f}"), use_container_width=True)
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data.index, y=data['ValueEUR', 'All', 'All'], name='Value'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['InvestedEUR', 'All', 'All'], name='Invested'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['PnLEUR', 'All', 'All'], name='PnL'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['CashEUR', 'All', 'All'], name='Cash'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['DepositEUR', 'All', 'All'], name='Deposit'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', 'All', 'All'], name='Value'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['InvestedEUR', 'All', 'All'], name='Invested'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', 'All', 'All'], name='PnL'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', 'All', 'All'], name='Cash'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', 'All', 'All'], name='Deposit'))
     fig.update_layout(autosize=True)
     # with st.container():
     st.plotly_chart(fig, use_container_width=True)
@@ -158,9 +153,9 @@ with all_tab:
     pie_col, _, lin_col = st.columns([2, 1, 4])
     with pie_col:
         df_all = pd.concat({ 
-            'ZEN' : data['ValueEUR', 'ZEN', 'All'],  
-            'DMA' : data['ValueEUR', 'DMA', 'All'],  
-            'Cash' : data['CashEUR', 'All', 'All']
+            'ZEN' : df['ValueEUR', 'ZEN', 'All'],  
+            'DMA' : df['ValueEUR', 'DMA', 'All'],  
+            'Cash' : df['CashEUR', 'All', 'All']
         }, axis=1) 
         s_all = df_all.iloc[-1]
         fig = go.Figure(go.Pie(values=s_all.values, labels=s_all.index))
@@ -175,9 +170,9 @@ with all_tab:
 
     st.header("Portfolio performance")
     df_all = pd.concat({ 
-        'ZEN' : data['PnLEUR', 'ZEN', 'All'],  
-        'DMA' : data['PnLEUR', 'DMA', 'All'],  
-        'All' : data['PnLEUR', 'All', 'All']
+        'ZEN' : df['PnLEUR', 'ZEN', 'All'],  
+        'DMA' : df['PnLEUR', 'DMA', 'All'],  
+        'All' : df['PnLEUR', 'All', 'All']
     }, axis=1) 
     s_all = df_all.iloc[-1]
     fig = go.Figure(go.Bar(x=s_all.index, y=s_all.values))
@@ -237,21 +232,21 @@ def bar_metric(s, ptf, metric):
 
 
 with zen_tab:
-    datatable_ptf(data.iloc[-1], 'ZEN')
-    scatter_ptf(data, 'ZEN')
+    datatable_ptf(df.iloc[-1], 'ZEN')
+    scatter_ptf(df, 'ZEN')
 
     st.header("ZEN Value")
-    scatter_metric(data, 'ZEN', 'ValueEUR')
+    scatter_metric(df, 'ZEN', 'ValueEUR')
 
     pie_col, lin_col = st.columns([1, 2])
     with pie_col:
-        pie_metric(data.iloc[-1], 'ZEN', 'ValueEUR')
+        pie_metric(df.iloc[-1], 'ZEN', 'ValueEUR')
 
     with lin_col:
-        stack_metric(data, 'ZEN', 'ValueEUR')
+        stack_metric(df, 'ZEN', 'ValueEUR')
 
     st.header("ZEN Performance")
-    bar_metric(data.iloc[-1], 'ZEN', 'PnLEUR')
+    bar_metric(df.iloc[-1], 'ZEN', 'PnLEUR')
 
 
 
