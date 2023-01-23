@@ -1,123 +1,16 @@
 
+
 import streamlit as st
-import gspread as gs 
-import pandas as pd
-import numpy as np
-import yfinance as yf
 import plotly.graph_objects as go
 
-import warnings
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+import pandas as pd
+idx = pd.IndexSlice
 
-print("""
-# ----------------------------------------------
-# Get data, concate, merge and extract metrics
-# for portfolio Dashboard 
-# ----------------------------------------------
-""")
+from api import build_data
+data = build_data()
 
-gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
-ss = gc.open_by_key(st.secrets['portfolio'].spreadsheet_key)
-dicts = pd.DataFrame(ss.worksheet('Dict').get_all_records())
-operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
-greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
-assets = dicts[['Asset', 'Market', 'Currency']].set_index('Asset')
-depots = dicts[['Depot', 'Forex']].set_index('Depot')
-
-
-market = yf.download(' '.join(list(assets['Market'])[:-1]), start='2021-04-01')['Close']
-market = pd.concat([market, greenbull], axis=1)
-market = pd.concat([market], keys=['Market'], axis=1)
-market = pd.concat([market], keys=['Cotation'], axis=1)
-
-forex: pd.DataFrame = yf.download(' '.join(list(depots['Forex'])), start='2021-04-01')['Close']
-forex = pd.concat([forex], keys=['Forex'], axis=1)
-forex = pd.concat([forex], keys=['Cotation'], axis=1)
-
-
-df = pd.concat([market, forex], axis=1).ffill().bfill()
-df['DepositEUR', 'All', 'All'] = 0
-df['InvestedEUR', 'All', 'All'] = 0
-df['ValueEUR', 'All', 'All'] = 0
-df['PnLEUR', 'All', 'All'] = 0
-df['CashEUR', 'All', 'All'] = 0
-
-for portfolio in np.unique(operation['Portfolio']):
-    dfp: pd.DataFrame = operation[operation['Portfolio'] == portfolio]
-    print('', portfolio)
-
-    for asset in np.unique(dfp['Asset']):
-        dfa: pd.DataFrame = dfp[dfp['Asset'] == asset]
-        dfa = dfa.groupby('Date').agg({'Amount': "sum", 'Total': "sum"})
-        print('  ', asset)
-
-        amt, tot = pd.Series(dtype=float), pd.Series(dtype=float)
-        for idx in dfa.index:
-            amt[idx] = np.sum(dfa.loc[:idx]['Amount'])
-            tot[idx] = np.sum(dfa.loc[:idx]['Total'])
-
-        if asset in assets['Market'].keys():
-            df = pd.concat([df, pd.DataFrame({
-                ('Amount', portfolio, asset): amt,
-                ('Invested', portfolio, asset): tot,
-            })], axis=1).ffill().fillna(0)
-
-            df['InvestedEUR', portfolio, asset] = df['Invested', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
-            df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Amount', portfolio, asset]
-            df['Value', portfolio, asset] = df['Amount', portfolio, asset] * df['Cotation', 'Market', assets['Market'][asset]]
-            df['ValueEUR', portfolio, asset] = df['Value', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
-            df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
-            df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
-
-        elif asset in depots['Forex'].keys():
-            df = pd.concat([df, pd.DataFrame({
-                ('Amount', portfolio, asset): amt,
-                ('Deposit', portfolio, asset): tot,
-            })], axis=1).ffill().fillna(0)
-
-            df['DepositEUR', portfolio, asset] = df['Deposit', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
-            # df['PnL', portfolio, asset] = df['Deposit', portfolio, asset] - df['DepositEUR', portfolio, asset]
-            # df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
-            
-
-    if 'DepositEUR' in df.columns and portfolio in df['DepositEUR'].columns:
-        df['DepositEUR', portfolio, 'All'] = df['DepositEUR', portfolio].sum(axis=1)
-    else:
-        df['DepositEUR', portfolio, 'All'] = 0
-    df['DepositEUR', 'All', 'All'] += df['DepositEUR', portfolio, 'All']
-
-    if 'InvestedEUR' in df.columns and portfolio in df['InvestedEUR'].columns:
-        df['InvestedEUR', portfolio, 'All'] = df['InvestedEUR', portfolio].sum(axis=1)
-    else:
-        df['InvestedEUR', portfolio, 'All'] = 0
-    df['InvestedEUR', 'All', 'All'] += df['InvestedEUR', portfolio, 'All']
-    
-    if 'ValueEUR' in df.columns and portfolio in df['ValueEUR'].columns:
-        df['ValueEUR', portfolio, 'All'] = df['ValueEUR', portfolio].sum(axis=1)
-    else:
-        df['ValueEUR', portfolio, 'All'] = 0
-    df['ValueEUR', 'All', 'All'] += df['ValueEUR', portfolio, 'All']
-
-    if 'PnLEUR' in df.columns and portfolio in df['PnLEUR'].columns:
-        df['PnLEUR', portfolio, 'All'] = df['PnLEUR', portfolio].sum(axis=1)
-    else:
-        df['PnLEUR', portfolio, 'All'] = 0
-    df['PnLEUR', 'All', 'All'] += df['PnLEUR', portfolio, 'All']
-
-    df['CashEUR', portfolio, 'All'] = df['DepositEUR', portfolio, 'All'] - df['InvestedEUR', portfolio, 'All']
-    df['CashEUR', 'All', 'All'] += df['CashEUR', portfolio, 'All']
-
-
-
-print("""
-# ----------------------------------------------
-# Dashboard construction
-# by Streamlit
-# ----------------------------------------------
-""")
 
 st.set_page_config(layout="wide")
-
 st.title("Portfolio Dashboard")
 st.write("""
 <style>
@@ -129,128 +22,131 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 """, unsafe_allow_html=True)
 
 
-all_tab, zen_tab, dma_tab = st.tabs(["Overview", "ZEN", "DMA"])
+
+def datatable_ptf(data, ptfs):
+    df = data[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
+    s = df.iloc[-1]
+    rows = {}
+    for ptf in ptfs:
+        rows[ptf] = s[:, ptf, 'All']
+    st.dataframe(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"), use_container_width=True)
+
+def datatable_asset(data, ptf):
+    # df = data[['Cotation', 'Currency', 'PRU', 'Amount', 'ValueEUR', 'InvestedEUR', 'PnLEUR']]
+    df = data[['PRU', 'Amount', 'ValueEUR', 'InvestedEUR', 'PnLEUR']]
+    s = df.iloc[-1]
+    rows = {}
+    for asset in s['ValueEUR', ptf, :].index[0:-1]:
+        rows[asset] = s[:, ptf, asset]
+    st.dataframe(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"), use_container_width=True)
+
+
+def scatter_ptf(df, ptf):
+    metrics = ['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']
+    fig = go.Figure()
+    for metric in metrics:
+        fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, 'All'], name=metric))
+    st.plotly_chart(fig, use_container_width=True)
+
+def scatter_asset(df, ptf):
+    assets = df.iloc[-1].loc[idx['ValueEUR', ptf, :]].index
+    fig = go.Figure()
+    for asset in assets:
+        fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, asset], name=asset))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def pie_ptf(s, ptfs):
+    value = []
+    label = []
+    for ptf in ptfs:
+        value.append(s['ValueEUR', ptf, 'All'])
+        label.append(ptf)
+    value.append(s['CashEUR', 'All', 'All'])
+    label.append('Cash')
+    fig = go.Figure(go.Pie(values=value, labels=label))
+    st.plotly_chart(fig, use_container_width=True)
+
+def pie_asset(s, ptf):
+    assets = s.loc[idx['ValueEUR', ptf, :]].index[0:-1]
+    value = []
+    label = []
+    for asset in assets:
+        value.append(s['ValueEUR', ptf, asset])
+        label.append(asset)
+    value.append(s['CashEUR', ptf, 'All'])
+    label.append('Cash')
+    fig = go.Figure(go.Pie(values=value, labels=label))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def stack_ptf(df, ptfs):
+    fig = go.Figure()
+    for ptf in ptfs:
+        fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, 'All'], name=ptf, stackgroup='one', groupnorm='percent'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', 'All', 'All'], name='Cash', stackgroup='one', groupnorm='percent'))
+    st.plotly_chart(fig, use_container_width=True)
+
+def stack_asset(df, ptf):
+    fig = go.Figure()
+    for asset in df.iloc[-1]['ValueEUR', ptf, :].index[0:-1]:
+        fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, asset], name=asset, stackgroup='one', groupnorm='percent'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', ptf, 'All'], name='Cash', stackgroup='one', groupnorm='percent'))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def bar_ptf(s, ptfs):
+    value = []
+    label = []
+    for ptf in ptfs:
+        value.append(s['PnLEUR', ptf, 'All'])
+        label.append(ptf)
+    fig = go.Figure(go.Bar(x=value, y=label, orientation='h'))
+    st.plotly_chart(fig, use_container_width=True)
+
+def bar_asset(s, ptf):
+    value = []
+    label = []
+    for asset in s['ValueEUR', ptf, :].index[0:-1]:
+        value.append(s['PnLEUR', ptf, asset])
+        label.append(asset)
+    fig = go.Figure(go.Bar(x=value, y=label, orientation='h'))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+
+
+all_tab, zen_tab, dma_tab = st.tabs(["All", "ZEN", "DMA"])
 
 with all_tab:
-    df_all = pd.concat({ 
-        'All' : s[:, 'All', 'All'],  
-        'ZEN' : s[:, 'ZEN', 'All'],  
-        'DMA' : s[:, 'DMA', 'All']
-    }, axis=1) 
-    st.dataframe(df_all.transpose().style.format("{:.0f}"), use_container_width=True)
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', 'All', 'All'], name='Value'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['InvestedEUR', 'All', 'All'], name='Invested'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', 'All', 'All'], name='PnL'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', 'All', 'All'], name='Cash'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', 'All', 'All'], name='Deposit'))
-    fig.update_layout(autosize=True)
-    # with st.container():
-    st.plotly_chart(fig, use_container_width=True)
+    st.header("Portfolio overview")
+    datatable_ptf(data, ['All', 'ZEN', 'DMA'])
+    scatter_ptf(data, 'All')
 
     st.header("Portfolio repartition")
     pie_col, _, lin_col = st.columns([2, 1, 4])
     with pie_col:
-        df_all = pd.concat({ 
-            'ZEN' : df['ValueEUR', 'ZEN', 'All'],  
-            'DMA' : df['ValueEUR', 'DMA', 'All'],  
-            'Cash' : df['CashEUR', 'All', 'All']
-        }, axis=1) 
-        s_all = df_all.iloc[-1]
-        fig = go.Figure(go.Pie(values=s_all.values, labels=s_all.index))
-        st.plotly_chart(fig, use_container_width=True)
-    
+        pie_ptf(data.iloc[-1], ['ZEN', 'DMA'])
     with lin_col:
-        fig = go.Figure(go.Scatter(x=df_all.index, y=df_all['ZEN'], name='ZEN', stackgroup='one', groupnorm='percent'))
-        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['DMA'], name='DMA', stackgroup='one'))
-        fig.add_trace(go.Scatter(x=df_all.index, y=df_all['Cash'], name='Cash', stackgroup='one'))
-        st.plotly_chart(fig, use_container_width=True)
-
+        stack_ptf(data, ['ZEN', 'DMA'])
 
     st.header("Portfolio performance")
-    df_all = pd.concat({ 
-        'ZEN' : df['PnLEUR', 'ZEN', 'All'],  
-        'DMA' : df['PnLEUR', 'DMA', 'All'],  
-        'All' : df['PnLEUR', 'All', 'All']
-    }, axis=1) 
-    s_all = df_all.iloc[-1]
-    fig = go.Figure(go.Bar(x=s_all.index, y=s_all.values))
-    st.plotly_chart(fig, use_container_width=True)
-
-
-
-def datatable_ptf(s, ptf):
-    rows = {}
-    rows['All'] = s[:, ptf, 'All']
-    for asset in s['ValueEUR', ptf].index:
-        if asset != 'All':
-            rows[asset] = s[:, ptf, asset]
-    table = pd.concat(rows, axis=1) 
-    st.dataframe(table.transpose().style.format("{:.0f}"), use_container_width=True)
-
-def scatter_ptf(df, ptf):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, 'All'], name='Value'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['InvestedEUR', ptf, 'All'], name='Invested'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['PnLEUR', ptf, 'All'], name='PnL'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', ptf, 'All'], name='Cash'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['DepositEUR', ptf, 'All'], name='Deposit'))
-    st.plotly_chart(fig, use_container_width=True)
-
-def scatter_metric(df, ptf, metric):
-    fig = go.Figure()
-    for asset in df[metric, ptf].columns:
-        fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, asset], name=asset))
-    st.plotly_chart(fig, use_container_width=True)
-
-def pie_metric(s, ptf, metric):
-    value = []
-    label = []
-    for asset in s[metric, ptf].index:
-        if asset != 'All':
-            value.append(s[metric, ptf, asset])
-            label.append(asset)
-    fig = go.Figure(go.Pie(values=value, labels=label))
-    st.plotly_chart(fig, use_container_width=True)
-
-def stack_metric(df, ptf, metric):
-    fig = go.Figure()
-    for asset in df[metric, ptf].columns:
-        if asset != 'All':
-            fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, asset], name=asset, stackgroup='one', groupnorm='percent'))
-    st.plotly_chart(fig, use_container_width=True)
-
-def bar_metric(s, ptf, metric):
-    value = []
-    label = []
-    for asset in s[metric, ptf].index:
-        value.append(s[metric, ptf, asset])
-        label.append(asset)
-    fig = go.Figure(go.Bar(x=label, y=value))
-    st.plotly_chart(fig, use_container_width=True)
+    bar_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
 
 
 with zen_tab:
-    datatable_ptf(df.iloc[-1], 'ZEN')
-    scatter_ptf(df, 'ZEN')
+    st.header("ZEN overview")
+    datatable_ptf(data, ['ZEN'])
+    scatter_ptf(data, 'ZEN')
+    datatable_asset(data, 'ZEN')
+    scatter_asset(data, 'ZEN')
 
-    st.header("ZEN Value")
-    scatter_metric(df, 'ZEN', 'ValueEUR')
-
-    pie_col, lin_col = st.columns([1, 2])
+    st.header("ZEN repartition")
+    pie_col, _, lin_col = st.columns([2, 1, 4])
     with pie_col:
-        pie_metric(df.iloc[-1], 'ZEN', 'ValueEUR')
-
+        pie_asset(data.iloc[-1], 'ZEN')
     with lin_col:
-        stack_metric(df, 'ZEN', 'ValueEUR')
+        stack_asset(data, 'ZEN')
 
-    st.header("ZEN Performance")
-    bar_metric(df.iloc[-1], 'ZEN', 'PnLEUR')
-
-
-
-# with st.expander("Operation spreadcheet, data source"):
-#     st.write(sheets['Operation'])
-# with st.expander("df"):
-#     st.write(data.loc[:, pd.IndexSlice[:, ['Forex', 'ZEN'], 'All']])
+    st.header("ZEN performance")
+    bar_asset(data.iloc[-1], 'ZEN')
