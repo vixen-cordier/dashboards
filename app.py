@@ -1,10 +1,8 @@
 
 
+import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
-
-import pandas as pd
-idx = pd.IndexSlice
 
 from api import build_data
 data = build_data()
@@ -15,8 +13,8 @@ st.title("Portfolio Dashboard")
 st.write("""
 <style>
 button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
-    font-weight: bold;
-    font-size: 32px;
+    # font-weight: bold;
+    font-size: 24px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -32,13 +30,15 @@ def datatable_ptf(data, ptfs):
     st.dataframe(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"), use_container_width=True)
 
 def datatable_asset(data, ptf):
-    # df = data[['Cotation', 'Currency', 'PRU', 'Amount', 'ValueEUR', 'InvestedEUR', 'PnLEUR']]
-    df = data[['PRU', 'Amount', 'ValueEUR', 'InvestedEUR', 'PnLEUR']]
+    df = data[['Cotation', 'Currency', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']]
+    # df = data[['Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']]
+    # df = data[['PRU', 'Amount', 'ValueEUR', 'InvestedEUR', 'PnLEUR']]
     s = df.iloc[-1]
     rows = {}
-    for asset in s['ValueEUR', ptf, :].index[0:-1]:
+    for asset in s['Cotation', ptf, :].index:
         rows[asset] = s[:, ptf, asset]
-    st.dataframe(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"), use_container_width=True)
+    st.dataframe(pd.concat(rows, axis=1).transpose(), use_container_width=True)
+    # st.dataframe(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"), use_container_width=True)
 
 
 def scatter_ptf(df, ptf):
@@ -49,9 +49,8 @@ def scatter_ptf(df, ptf):
     st.plotly_chart(fig, use_container_width=True)
 
 def scatter_asset(df, ptf):
-    assets = df.iloc[-1].loc[idx['ValueEUR', ptf, :]].index
     fig = go.Figure()
-    for asset in assets:
+    for asset in data['ValueEUR', ptf].columns:
         fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, asset], name=asset))
     st.plotly_chart(fig, use_container_width=True)
 
@@ -68,12 +67,12 @@ def pie_ptf(s, ptfs):
     st.plotly_chart(fig, use_container_width=True)
 
 def pie_asset(s, ptf):
-    assets = s.loc[idx['ValueEUR', ptf, :]].index[0:-1]
     value = []
     label = []
-    for asset in assets:
-        value.append(s['ValueEUR', ptf, asset])
-        label.append(asset)
+    for asset in s['ValueEUR', ptf, :].index:
+        if asset != 'All':
+            value.append(s['ValueEUR', ptf, asset])
+            label.append(asset)
     value.append(s['CashEUR', ptf, 'All'])
     label.append('Cash')
     fig = go.Figure(go.Pie(values=value, labels=label))
@@ -89,8 +88,9 @@ def stack_ptf(df, ptfs):
 
 def stack_asset(df, ptf):
     fig = go.Figure()
-    for asset in df.iloc[-1]['ValueEUR', ptf, :].index[0:-1]:
-        fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, asset], name=asset, stackgroup='one', groupnorm='percent'))
+    for asset in df['ValueEUR', ptf].columns:
+        if asset != 'All':
+            fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, asset], name=asset, stackgroup='one', groupnorm='percent'))
     fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', ptf, 'All'], name='Cash', stackgroup='one', groupnorm='percent'))
     st.plotly_chart(fig, use_container_width=True)
 
@@ -107,9 +107,10 @@ def bar_ptf(s, ptfs):
 def bar_asset(s, ptf):
     value = []
     label = []
-    for asset in s['ValueEUR', ptf, :].index[0:-1]:
-        value.append(s['PnLEUR', ptf, asset])
-        label.append(asset)
+    for asset in s['ValueEUR', ptf, :].index:
+        if asset != 'All':
+            value.append(s['PnLEUR', ptf, asset])
+            label.append(asset)
     fig = go.Figure(go.Bar(x=value, y=label, orientation='h'))
     st.plotly_chart(fig, use_container_width=True)
 

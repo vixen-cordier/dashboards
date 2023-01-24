@@ -7,7 +7,6 @@ import yfinance as yf
 import warnings
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-print()
 
 def build_data():
     print("""
@@ -22,21 +21,23 @@ def build_data():
     dicts = pd.DataFrame(ss.worksheet('Dict').get_all_records())
     operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
     greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
-    assets = dicts[['Asset', 'Market', 'Currency']].set_index('Asset')
-    depots = dicts[['Depot', 'Forex']].set_index('Depot')
+    assets = dicts[['Asset', 'Market', 'Currency', 'Forex', 'IsDepot']].set_index('Asset')
+    # depots = dicts[['Depot', 'Forex']].set_index('Depot')
+    print(assets, '\n')
+    # print(depots)
 
-
-    market = yf.download(' '.join(list(assets['Market'])[:-1]), start='2021-04-01')['Close']
+    market = yf.download(' '.join(list(assets['Forex'])+list(assets['Market'])[:-1]), start='2021-04-01')['Close']
     market = pd.concat([market, greenbull], axis=1)
     market = pd.concat([market], keys=['Market'], axis=1)
     market = pd.concat([market], keys=['Cotation'], axis=1)
 
-    forex: pd.DataFrame = yf.download(' '.join(list(depots['Forex'])), start='2021-04-01')['Close']
-    forex = pd.concat([forex], keys=['Forex'], axis=1)
-    forex = pd.concat([forex], keys=['Cotation'], axis=1)
+    # forex: pd.DataFrame = yf.download(' '.join(list(depots['Forex'])), start='2021-04-01')['Close']
+    # forex = pd.concat([forex], keys=['Forex'], axis=1)
+    # forex = pd.concat([forex], keys=['Cotation'], axis=1)
 
 
-    df = pd.concat([market, forex], axis=1).ffill().bfill()
+    # df = pd.concat([market, forex], axis=1).ffill().bfill()
+    df = market.ffill().bfill()
     df['DepositEUR', 'All', 'All'] = 0
     df['InvestedEUR', 'All', 'All'] = 0
     df['ValueEUR', 'All', 'All'] = 0
@@ -45,41 +46,48 @@ def build_data():
 
     for portfolio in np.unique(operation['Portfolio']):
         dfp: pd.DataFrame = operation[operation['Portfolio'] == portfolio]
-        print('', portfolio)
+        print(portfolio)
 
         for asset in np.unique(dfp['Asset']):
             dfa: pd.DataFrame = dfp[dfp['Asset'] == asset]
             dfa = dfa.groupby('Date').agg({'Amount': "sum", 'Total': "sum"})
-            print('  ', asset)
 
             amt, tot = pd.Series(dtype=float), pd.Series(dtype=float)
             for idx in dfa.index:
                 amt[idx] = np.sum(dfa.loc[:idx]['Amount'])
                 tot[idx] = np.sum(dfa.loc[:idx]['Total'])
 
-            if asset in assets['Market'].keys():
-                df = pd.concat([df, pd.DataFrame({
-                    ('Amount', portfolio, asset): amt,
-                    ('Invested', portfolio, asset): tot,
-                })], axis=1).ffill().fillna(0)
-
-                df['InvestedEUR', portfolio, asset] = df['Invested', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
-                df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Amount', portfolio, asset]
-                df['Value', portfolio, asset] = df['Amount', portfolio, asset] * df['Cotation', 'Market', assets['Market'][asset]]
-                df['ValueEUR', portfolio, asset] = df['Value', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
-                df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
-                df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][assets['Currency'][asset]]]
-
-            elif asset in depots['Forex'].keys():
+            if assets.loc[asset]['IsDepot'] == 'TRUE':
                 df = pd.concat([df, pd.DataFrame({
                     ('Amount', portfolio, asset): amt,
                     ('Deposit', portfolio, asset): tot,
                 })], axis=1).ffill().fillna(0)
 
-                df['DepositEUR', portfolio, asset] = df['Deposit', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
+                print(f"\tdepot:  {asset}")
+                df['DepositEUR', portfolio, asset] = df['Deposit', portfolio, asset] * df['Cotation', 'Market', assets.loc[asset]['Forex']]
                 # df['PnL', portfolio, asset] = df['Deposit', portfolio, asset] - df['DepositEUR', portfolio, asset]
                 # df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
-                
+
+                df['Cotation', portfolio, asset] = df['Cotation', 'Market', assets.loc[asset]['Market']]
+                df['Currency', portfolio, asset] = assets.loc[asset]['Currency']
+
+            else:
+                df = pd.concat([df, pd.DataFrame({
+                    ('Amount', portfolio, asset): amt,
+                    ('Invested', portfolio, asset): tot,
+                })], axis=1).ffill().fillna(0)
+
+                print(f"\tasset:  {asset}")
+                df['InvestedEUR', portfolio, asset] = df['Invested', portfolio, asset] / df['Cotation', 'Market', assets.loc[asset]['Forex']]
+                df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Amount', portfolio, asset]
+                df['Value', portfolio, asset] = df['Amount', portfolio, asset] * df['Cotation', 'Market', assets.loc[asset]['Market']]
+                df['ValueEUR', portfolio, asset] = df['Value', portfolio, asset] / df['Cotation', 'Market', assets.loc[asset]['Forex']]
+                df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
+                df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] / df['Cotation', 'Market', assets.loc[asset]['Forex']]
+
+                df['Cotation', portfolio, asset] = df['Cotation', 'Market', assets.loc[asset]['Market']]
+                df['Currency', portfolio, asset] = assets.loc[asset]['Currency']
+
 
         if 'DepositEUR' in df.columns and portfolio in df['DepositEUR'].columns:
             df['DepositEUR', portfolio, 'All'] = df['DepositEUR', portfolio].sum(axis=1)
