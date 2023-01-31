@@ -1,10 +1,8 @@
-
-
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-from api import build_data
+from api_portfolio import build_data
 data = build_data()
 
 
@@ -139,6 +137,7 @@ with zen_tab:
     st.header("ZEN overview")
     datatable_ptf(data, ['ZEN'])
     scatter_ptf(data, 'ZEN')
+    st.header("ZEN value")
     datatable_asset(data, 'ZEN')
     scatter_asset(data, 'ZEN')
 
