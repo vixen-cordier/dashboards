@@ -9,6 +9,9 @@ def build_data():
     print(operation.shape)
     print(operation.columns)
 
+    operation = operation[operation['Catégorie'] != ""]
+    # operation = operation[operation['Type de transaction'] != "Transfert d'argent"]
+
     operation['Date & heure'] = pd.to_datetime(operation['Date & heure'], format='%d/%m/%Y %H:%M')
     operation['Année'] = operation['Date & heure'].dt.year
     operation['Mois'] = operation['Date & heure'].dt.month
@@ -19,4 +22,4 @@ def build_data():
     data = operation.groupby(['Année', 'Mois', 'Catégorie']).agg({'Lucie': "sum", 'Vincent': "sum"})
     data['Total'] = data['Lucie'] + data['Vincent']
 
-    return data
+    return data[['Total', 'Lucie', 'Vincent']]
