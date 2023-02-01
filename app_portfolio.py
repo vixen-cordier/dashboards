@@ -18,7 +18,6 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 """, unsafe_allow_html=True)
 
 
-
 def datatable_ptf(data, ptfs):
     df = data[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
     s = df.iloc[-1]
