@@ -18,12 +18,12 @@ def fetch_data():
     #  - category dictonnary            #
     # --------------------------------- #
     """)
-    # gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
-    # ss = gc.open_by_key(st.secrets['tricount'].spreadsheet_key)
-    # data = pd.DataFrame(ss.worksheet('Data').get_all_records())
-    # dict = pd.DataFrame(ss.worksheet('Dict').get_all_records())
-    # data.to_csv('.out/data.csv')
-    # dict.to_csv('.out/dict.csv')
+    gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
+    ss = gc.open_by_key(st.secrets['tricount'].spreadsheet_key)
+    data = pd.DataFrame(ss.worksheet('Data').get_all_records())
+    dict = pd.DataFrame(ss.worksheet('Dict').get_all_records())
+    data.to_csv('.out/data.csv')
+    dict.to_csv('.out/dict.csv')
     data = pd.read_csv('.out/data.csv')
     dict = pd.read_csv('.out/dict.csv')
     dict2 = dict[['Postes', 'Catégories']].set_index('Catégories').to_dict()['Postes']
@@ -50,7 +50,7 @@ def build_data(data: pd.DataFrame):
     data['Lucie'] = data['Impacté à Lucie']
     data['Vincent'] = data['Impacté à Vincent']
 
-    data = data.groupby(['Année', 'Mois', 'Catégorie']).sum().agg({'Lucie': "sum", 'Vincent': "sum"})
+    data = data.groupby(['Année', 'Mois', 'Catégorie']).agg({'Lucie': "sum", 'Vincent': "sum"})
     data['Total'] = data['Lucie'] + data['Vincent']
 
     print(" -- data built")
@@ -77,7 +77,7 @@ def format_data(data: pd.DataFrame, dict: Dict):
         for month in sorted(months, reverse=True):
             col_name = f'{year} {cd.month_name[month]}'
             tables[col_name] = df.loc[month,:].groupby('Catégorie').sum()
-        # for category in set(dict.values()):
+        # for category in set(dict.keys()):
         #     if category not in tables[col_name].columns:
         #         tables[col_name][col_name] = 0
     return tables
@@ -91,15 +91,36 @@ def concat_data(tables: Dict[str, pd.DataFrame], dict: pd.DataFrame):
     # --------------------------------- #
     """)
     result = {}
-    # for table in tables.keys():
-    #     tables[table]['Poste'] = dict[]
-    #     result[table] = 
+    for table in tables.keys():
+        df = tables[table].reset_index()
+        df['Poste'] = df['Catégorie'].apply(lambda category: dict[category])
+        df = df.set_index('Poste')[['Total', 'Lucie', 'Vincent']]
+        df = df.groupby('Poste').sum()
+        df = df.transpose()
+
+        for poste in set(dict.values()):
+            if poste not in df.columns:
+                df[poste] = 0
+
+        df['Revenus'] = df['Rentrée d\'argent']
+        df['Dépenses'] = df['Quotidien'] + df['Loisir'] + df['Extra'] + df['Achats']
+        df['Reste à vivre'] = df['Dépenses'] - df['Revenus'] 
+        df['Reste à vivre %'] = df['Reste à vivre'] / df['Revenus'] * 100
+        df['Capital investi'] = df['Investissement']
+        df['Capital investi %'] = df['Capital investi'] / df['Revenus'] * 100
+        df['Epargne'] = df['Reste à vivre'] - df['Capital investi']
+        df['Epargne %'] = df['Epargne'] / df['Revenus'] * 100
+        df = df.transpose()
+        result[table] = df
+        print(df)
+
     return result
+
 
 
 data, dict = fetch_data()
 dframe = build_data(data)
-tables = format_data(dframe)
+tables = format_data(dframe, dict)
 result = concat_data(tables, dict)
 
 
