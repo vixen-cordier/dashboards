@@ -18,16 +18,21 @@ def fetch_data():
     #  - category dictonnary            #
     # --------------------------------- #
     """)
-    gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
-    ss = gc.open_by_key(st.secrets['tricount'].spreadsheet_key)
-    data = pd.DataFrame(ss.worksheet('Data').get_all_records())
-    dict = pd.DataFrame(ss.worksheet('Dict').get_all_records())
+    # gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
+    # ss = gc.open_by_key(st.secrets['tricount'].spreadsheet_key)
+    # data = pd.DataFrame(ss.worksheet('Data').get_all_records())
+    # dict = pd.DataFrame(ss.worksheet('Dict').get_all_records())
+    # data.to_csv('.out/data.csv')
+    # dict.to_csv('.out/dict.csv')
+    data = pd.read_csv('.out/data.csv')
+    dict = pd.read_csv('.out/dict.csv')
+    dict2 = dict[['Postes', 'Catégories']].set_index('Catégories').to_dict()['Postes']
     print(" -- data fetched")
     print(data.shape)
     print(data.columns)
-    print(" -- dict fetched")
-    print(dict)
-    return data, dict
+    print(" -- dict2 fetched ")
+    print(dict2)
+    return data, dict2
 
 
 @st.experimental_memo
@@ -55,7 +60,7 @@ def build_data(data: pd.DataFrame):
 
 
 @st.experimental_memo
-def format_data(data: pd.DataFrame):
+def format_data(data: pd.DataFrame, dict: Dict):
     print("""
     # --------------------------------- #
     # Format and split data             #
@@ -70,7 +75,11 @@ def format_data(data: pd.DataFrame):
         tables[f'{year} (sum)'] = df.groupby('Catégorie').sum()
         tables[f'{year} (mean)'] = tables[f'{year} (sum)'] / len(months)
         for month in sorted(months, reverse=True):
-            tables[f'{year} {cd.month_name[month]}'] = df.loc[month,:].groupby('Catégorie').sum()
+            col_name = f'{year} {cd.month_name[month]}'
+            tables[col_name] = df.loc[month,:].groupby('Catégorie').sum()
+        # for category in set(dict.values()):
+        #     if category not in tables[col_name].columns:
+        #         tables[col_name][col_name] = 0
     return tables
 
 
