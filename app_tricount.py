@@ -30,11 +30,16 @@ print("""
 
 st.title("Tricount Dashboard")
 
+column = {}
 checks = {}
 with st.sidebar:
+    for col in ['Total', 'Lucie', 'Vincent']:
+        column[col] = st.checkbox(col, value=True)
+    st.markdown('---')
     for period in detail.keys():
         checks[period] = st.checkbox(period)
 
+columns = [column for column, check in column.items() if check==True]
 periods = [period for period, check in checks.items() if check==True]
 
 if len(periods) == 0:
@@ -45,5 +50,10 @@ else:
     cols = st.columns(len(periods))
     for i, col in enumerate(cols):
         with col:
-            st.header(periods[i])
-            st.table(detail[periods[i]].style.format("{:.2f}"))
+            st.subheader(periods[i])
+            st.table(detail[periods[i]][columns].sort_index().assign(hack='').set_index('hack').style.format("{:.2f}"))
+    
+    rows = {}
+    for period in periods:
+        rows[period] = detail[period][columns].sort_index()
+    st.table(pd.concat(rows, axis=1).assign(hack='').set_index('hack').style.format("{:.2f}"))
