@@ -3,8 +3,12 @@ import streamlit as st
 import plotly.graph_objects as go
 
 from api_portfolio import build_data
-data = build_data()
 
+@st.experimental_memo
+def get_data():
+    return build_data()
+
+data = get_data()
 
 st.set_page_config(layout="wide")
 st.title("Portfolio Dashboard")

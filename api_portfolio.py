@@ -22,21 +22,13 @@ def build_data():
     operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
     greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
     assets = dicts[['Asset', 'Market', 'Currency', 'Forex', 'IsDepot']].set_index('Asset')
-    # depots = dicts[['Depot', 'Forex']].set_index('Depot')
     print(assets, '\n')
-    # print(depots)
 
     market = yf.download(' '.join(list(assets['Forex'])+list(assets['Market'])[:-1]), start='2021-04-01')['Close']
     market = pd.concat([market, greenbull], axis=1)
     market = pd.concat([market], keys=['Market'], axis=1)
     market = pd.concat([market], keys=['Cotation'], axis=1)
 
-    # forex: pd.DataFrame = yf.download(' '.join(list(depots['Forex'])), start='2021-04-01')['Close']
-    # forex = pd.concat([forex], keys=['Forex'], axis=1)
-    # forex = pd.concat([forex], keys=['Cotation'], axis=1)
-
-
-    # df = pd.concat([market, forex], axis=1).ffill().bfill()
     df = market.ffill().bfill()
     df['DepositEUR', 'All', 'All'] = 0
     df['InvestedEUR', 'All', 'All'] = 0
