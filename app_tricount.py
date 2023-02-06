@@ -51,9 +51,7 @@ else:
     for i, col in enumerate(cols):
         with col:
             st.subheader(periods[i])
-            st.table(detail[periods[i]][columns].sort_index().assign(hack='').set_index('hack').style.format("{:.2f}"))
-    
-    rows = {}
-    for period in periods:
-        rows[period] = detail[period][columns].sort_index()
-    st.table(pd.concat(rows, axis=1).assign(hack='').set_index('hack').style.format("{:.2f}"))
+            df = detail[periods[i]][columns].sort_index().replace(0, pd.NA)
+            st.table(df.style.format("{:.0f}").highlight_null(props="color: transparent;"))
+
+            st.table(detail[periods[i]][columns].sort_index().replace(0, pd.NA).assign(hack='').set_index('hack').style.format("{:.0f}").highlight_null(props="color: transparent;"))
