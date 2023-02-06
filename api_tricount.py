@@ -78,7 +78,10 @@ def split_data(data: pd.DataFrame, dict: Dict):
     for period in detail.keys():
         for category in set(dict.keys()):
             if category not in detail[period].index:
-                detail[period].loc[category] = [0, 0, 0]
+                detail[period].loc[category] = [pd.NA, pd.NA, pd.NA]
+
+    for period in detail.keys():
+        detail[period] = detail[period].sort_index()
 
     return detail
 
@@ -97,9 +100,6 @@ def concat_data(detail: Dict[str, pd.DataFrame], dict: pd.DataFrame):
         dfp = dfp.set_index('Poste')[['Total', 'Lucie', 'Vincent']]
         dfp = dfp.groupby('Poste').sum()
         postes[period] = dfp.copy()
-        # for poste in set(dict.values()):
-        #     if poste not in df.columns:
-        #         df.loc[poste] = [0, 0, 0]
 
         dfr = pd.DataFrame()
         dfp = dfp.transpose()

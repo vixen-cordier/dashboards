@@ -7,7 +7,7 @@ import streamlit as st
 import plotly.graph_objects as go
 warnings.simplefilter(action='ignore', category=pd.core.common.SettingWithCopyWarning)
 
-from api_tricount import *
+from api_tricount import * 
 
 
 @st.experimental_memo
@@ -16,7 +16,7 @@ def get_data():
     data = build_data(data)
     detail = split_data(data, dict)
     postes, result = concat_data(detail, dict)
-    return detail, postes, result
+    return detail, postes, result 
 
 detail, postes, result = get_data()
 
@@ -47,11 +47,25 @@ if len(periods) == 0:
 else:
     # st.table(result[periods].style.format("{:.2f}"))
 
+    st.header("Poste de dépenses")
+    cols = st.columns(len(columns))
+    for i, col in enumerate(cols):
+        with col:
+            st.subheader(columns[i])
+            rows = {}
+            for period in periods:
+                rows[period] = postes[period][columns[i]]#.transpose()
+            # cols[col] = pd.concat(rows, axis=0)
+            st.table(pd.concat(rows, axis=0))
+
+    # st.table(postes[periods].style.format("{:.0f}").highlight_null(props="color: transparent;")))
+
+    st.header("Détails des catégories")
     cols = st.columns(len(periods))
     for i, col in enumerate(cols):
         with col:
             st.subheader(periods[i])
-            df = detail[periods[i]][columns].sort_index().replace(0, pd.NA)
+            df = detail[periods[i]][columns]#.sort_index()#.replace(0, pd.NA)
             st.table(df.style.format("{:.0f}").highlight_null(props="color: transparent;"))
 
-            st.table(detail[periods[i]][columns].sort_index().replace(0, pd.NA).assign(hack='').set_index('hack').style.format("{:.0f}").highlight_null(props="color: transparent;"))
+            # st.table(detail[periods[i]][columns].sort_index().replace(0, pd.NA).assign(hack='').set_index('hack').style.format("{:.0f}").highlight_null(props="color: transparent;"))
