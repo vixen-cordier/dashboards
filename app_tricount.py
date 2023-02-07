@@ -46,25 +46,29 @@ if len(periods) == 0:
     st.write('Tick the periods')
 else:
     # st.table(result[periods].style.format("{:.2f}"))
+    for col in columns:
+        st.subheader(col)
 
-    st.header("Poste de dépenses")
-    cols = st.columns(len(columns))
-    for i, col in enumerate(cols):
-        with col:
-            st.subheader(columns[i])
-            rows = {}
-            for period in periods:
-                rows[period] = postes[period][columns[i]]#.transpose()
-            # cols[col] = pd.concat(rows, axis=0)
-            st.table(pd.concat(rows, axis=0))
+        st.write("Synthèse")
+        rows = {}
+        for period in periods:
+            rows[period] = result[period][col]
+        st.table(pd.concat(rows, axis=1).transpose().style.format("{:.0f}").highlight_null(props="color: transparent;"))
+
+        st.write("Budget")
+        rows = {}
+        for period in periods:
+            rows[period] = postes[period][col]
+        st.table(pd.concat(rows, axis=1).transpose().style.format("{:.0f}").highlight_null(props="color: transparent;"))
+
 
     # st.table(postes[periods].style.format("{:.0f}").highlight_null(props="color: transparent;")))
 
-    st.header("Détails des catégories")
+    st.subheader("Détails des catégories")
     cols = st.columns(len(periods))
     for i, col in enumerate(cols):
         with col:
-            st.subheader(periods[i])
+            st.write(periods[i])
             df = detail[periods[i]][columns]#.sort_index()#.replace(0, pd.NA)
             st.table(df.style.format("{:.0f}").highlight_null(props="color: transparent;"))
 
