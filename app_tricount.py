@@ -1,8 +1,6 @@
-from typing import Dict
 import warnings
+import numpy as np
 import pandas as pd
-import gspread as gs 
-import calendar as cd
 import streamlit as st
 import plotly.graph_objects as go
 warnings.simplefilter(action='ignore', category=pd.core.common.SettingWithCopyWarning)
@@ -30,46 +28,52 @@ print("""
 
 st.title("Tricount Dashboard")
 
-column = {}
-checks = {}
+people_x = {}
+period_x = {}
 with st.sidebar:
-    for col in ['Total', 'Lucie', 'Vincent']:
-        column[col] = st.checkbox(col, value=True)
+    for people in ['Total', 'Lucie', 'Vincent']:
+        people_x[people] = st.checkbox(people, value=True)
     st.markdown('---')
     for period in detail.keys():
-        checks[period] = st.checkbox(period)
+        period_x[period] = st.checkbox(period)
 
-columns = [column for column, check in column.items() if check==True]
-periods = [period for period, check in checks.items() if check==True]
+peoples = [people for people, check in people_x.items() if check==True]
+periods = [period for period, check in period_x.items() if check==True]
 
 if len(periods) == 0:
     st.write('Tick the periods')
 else:
-    # st.table(result[periods].style.format("{:.2f}"))
-    for col in columns:
-        st.subheader(col)
+    for people in peoples:
+        st.subheader(people)
 
         st.write("Synthèse")
         rows = {}
         for period in periods:
-            rows[period] = result[period][col]
-        st.table(pd.concat(rows, axis=1).transpose().style.format("{:.0f}").highlight_null(props="color: transparent;"))
+            rows[period] = result[period][people]
+        df = pd.concat(rows, axis=1).transpose()
+        st.table(df
+            .style
+            .format("{:.0f}")
+            .highlight_null(props="color: transparent;")
+            .bar(subset=df.columns, align='mid', color=['#d65f5f', '#5fba7d'])
+        )
 
         st.write("Budget")
         rows = {}
         for period in periods:
-            rows[period] = postes[period][col]
-        st.table(pd.concat(rows, axis=1).transpose().style.format("{:.0f}").highlight_null(props="color: transparent;"))
-
-
-    # st.table(postes[periods].style.format("{:.0f}").highlight_null(props="color: transparent;")))
+            rows[period] = postes[period][people]
+        df = pd.concat(rows, axis=1).transpose()
+        st.table(df
+            .style
+            .format("{:.0f}")
+            .highlight_null(props="color: transparent;")
+            .bar(subset=df.columns, align='mid', color=['#d65f5f', '#5fba7d'])
+        )
 
     st.subheader("Détails des catégories")
-    cols = st.columns(len(periods))
-    for i, col in enumerate(cols):
-        with col:
-            st.write(periods[i])
-            df = detail[periods[i]][columns]#.sort_index()#.replace(0, pd.NA)
-            st.table(df.style.format("{:.0f}").highlight_null(props="color: transparent;"))
-
-            # st.table(detail[periods[i]][columns].sort_index().replace(0, pd.NA).assign(hack='').set_index('hack').style.format("{:.0f}").highlight_null(props="color: transparent;"))
+    rows = {}
+    for i, period in enumerate(periods):
+        if len(peoples) > 1:
+            rows[i] = pd.Series(dtype='int')
+        rows[period] = detail[period][peoples]
+    st.table(pd.concat(rows, axis=1).style.format("{:.0f}").highlight_null(props="color: transparent;"))
