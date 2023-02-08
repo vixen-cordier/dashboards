@@ -10,7 +10,7 @@ def get_data():
 
 data = get_data()
 
-st.set_page_config(layout="wide")
+# st.set_page_config(layout="wide")
 st.title("Portfolio Dashboard")
 st.write("""
 <style>
