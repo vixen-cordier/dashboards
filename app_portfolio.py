@@ -6,8 +6,8 @@ import plotly.graph_objects as go
 from api_portfolio import build_data
 
 @st.experimental_memo
-def get_data():
-    return build_data() 
+def get_data(): 
+    return build_data()
 
 data = get_data()
 
@@ -25,23 +25,23 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 def datatable_ptf(s, ptfs):
     rows = {}
     for ptf in ptfs:
-        rows[ptf] = s[:, ptf, 'All']
+        rows[ptf] = s[:, ptf, 'All'] 
     df = pd.concat(rows, axis=1).transpose()
     df = df[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
     st.dataframe(df.style.format("{:.0f}"), use_container_width=True)
 
 def datatable_asset(s: pd.Series, ptf):
-    s_fmt = s[['Format']]
-    s = s[['Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']]
+    cols = ['Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']
+    # s_fmt = s[['Format']]
+    s = s[cols]
     rows = {}
     for asset in s['Cotation', ptf, :].index:
-        
-        print(asset)
-        print(s_fmt['Format', ptf, asset])
-        rows[asset] = s[:, ptf, asset].map(str(s_fmt['Format', ptf, asset]).format)
+        # print(asset)
+        # print(s_fmt['Format', ptf, asset])
+        rows[asset] = s[:, ptf, asset]#.map(str(s_fmt['Format', ptf, asset]).format)
     df = pd.concat(rows, axis=1).transpose()
-    st.dataframe(df.style
-        .format({('A')})
+    st.dataframe(df[cols].style
+        .format({('Amount', 'Value', 'Invested', 'PnL'): '{:.0f}'})
         .highlight_null(props="color: transparent;")
         , use_container_width=True)
     # st.table(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"))
