@@ -1,16 +1,16 @@
 import pandas as pd
 import streamlit as st
+st.set_page_config(layout="wide")
 import plotly.graph_objects as go
 
 from api_portfolio import build_data
 
 @st.experimental_memo
 def get_data():
-    return build_data()
+    return build_data() 
 
 data = get_data()
 
-# st.set_page_config(layout="wide")
 st.title("Portfolio Dashboard")
 st.write("""
 <style>
@@ -22,24 +22,29 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 """, unsafe_allow_html=True)
 
 
-def datatable_ptf(data, ptfs):
-    df = data[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
-    s = df.iloc[-1]
+def datatable_ptf(s, ptfs):
     rows = {}
     for ptf in ptfs:
         rows[ptf] = s[:, ptf, 'All']
-    st.dataframe(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"), use_container_width=True)
+    df = pd.concat(rows, axis=1).transpose()
+    df = df[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
+    st.dataframe(df.style.format("{:.0f}"), use_container_width=True)
 
-def datatable_asset(data, ptf):
-    df = data[['Cotation', 'Currency', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']]
-    # df = data[['Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']]
-    # df = data[['PRU', 'Amount', 'ValueEUR', 'InvestedEUR', 'PnLEUR']]
-    s = df.iloc[-1]
+def datatable_asset(s: pd.Series, ptf):
+    s_fmt = s[['Format']]
+    s = s[['Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']]
     rows = {}
     for asset in s['Cotation', ptf, :].index:
-        rows[asset] = s[:, ptf, asset]
-    st.dataframe(pd.concat(rows, axis=1).transpose(), use_container_width=True)
-    # st.dataframe(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"), use_container_width=True)
+        
+        print(asset)
+        print(s_fmt['Format', ptf, asset])
+        rows[asset] = s[:, ptf, asset].map(str(s_fmt['Format', ptf, asset]).format)
+    df = pd.concat(rows, axis=1).transpose()
+    st.dataframe(df.style
+        .format({('A')})
+        .highlight_null(props="color: transparent;")
+        , use_container_width=True)
+    # st.table(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"))
 
 
 def scatter_ptf(df, ptf):
@@ -49,10 +54,10 @@ def scatter_ptf(df, ptf):
         fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, 'All'], name=metric))
     st.plotly_chart(fig, use_container_width=True)
 
-def scatter_asset(df, ptf):
+def scatter_asset(df, ptf, metric):
     fig = go.Figure()
-    for asset in data['ValueEUR', ptf].columns:
-        fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, asset], name=asset))
+    for asset in data[metric, ptf].columns:
+        fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, asset], name=asset))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -122,7 +127,7 @@ all_tab, zen_tab, dma_tab = st.tabs(["All", "ZEN", "DMA"])
 
 with all_tab:
     st.header("Portfolio overview")
-    datatable_ptf(data, ['All', 'ZEN', 'DMA'])
+    datatable_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
     scatter_ptf(data, 'All')
 
     st.header("Portfolio repartition")
@@ -138,11 +143,13 @@ with all_tab:
 
 with zen_tab:
     st.header("ZEN overview")
-    datatable_ptf(data, ['ZEN'])
+    datatable_ptf(data.iloc[-1], ['ZEN'])
     scatter_ptf(data, 'ZEN')
-    st.header("ZEN value")
-    datatable_asset(data, 'ZEN')
-    scatter_asset(data, 'ZEN')
+    
+    st.header("ZEN assets")
+    datatable_asset(data.iloc[-1], 'ZEN')
+    metric = st.radio('Metric: ', ['ValueEUR', 'InvestedEUR', 'PnLEUR'], horizontal=True, key=f'ZEN asset graph')
+    scatter_asset(data, 'ZEN', metric)
 
     st.header("ZEN repartition")
     pie_col, _, lin_col = st.columns([2, 1, 4])

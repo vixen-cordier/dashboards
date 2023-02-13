@@ -1,14 +1,15 @@
-import warnings
 import numpy as np
 import pandas as pd
 import streamlit as st
+st.set_page_config(layout="wide")
 import plotly.graph_objects as go
+import warnings
 warnings.simplefilter(action='ignore', category=pd.core.common.SettingWithCopyWarning)
 
 from api_tricount import * 
 
 
-@st.experimental_memo
+@st.experimental_memo 
 def get_data():
     data, dict = fetch_data()
     data = build_data(data)
@@ -23,7 +24,6 @@ print("""
     # Build screen elements             #
     # --------------------------------- #
 """)
-# st.set_page_config(layout="wide")
 
 
 st.title("Tricount Dashboard")
@@ -50,7 +50,8 @@ else:
         #     draw_bar = st.checkbox("Draw bars", value=True)
         st.subheader(people)
 
-        period = st.radio('Graph',periods, horizontal=True)
+
+        period = st.radio('Graph', periods, horizontal=True, key=f'{people} graph key')
         # col1, col2 = st.columns([1, 3])
         col1, _, col2 = st.columns([4,1,4])
        
@@ -60,8 +61,10 @@ else:
             st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list())), use_container_width=True)
         with col2:
             df: pd.DataFrame = result[period][people][['Revenus', 'Dépenses', 'Capital investi', 'Epargne']]
-            df = df.abs()
+            # df: pd.DataFrame = result[period][people][['Dépenses', 'Capital investi', 'Epargne']]
+            # df = df.abs()
             st.plotly_chart(go.Figure(go.Bar(x=df.index.to_list(), y=df.values)).update_layout(height=450), use_container_width=True)
+            # st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list())), use_container_width=True)
 
 
 

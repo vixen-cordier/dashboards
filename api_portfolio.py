@@ -21,7 +21,7 @@ def build_data():
     dicts = pd.DataFrame(ss.worksheet('Dict').get_all_records())
     operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
     greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
-    assets = dicts[['Asset', 'Market', 'Currency', 'Forex', 'IsDepot']].set_index('Asset')
+    assets = dicts[['Asset', 'Market', 'Currency', 'Forex', 'IsDepot', 'Format']].set_index('Asset')
     print(assets, '\n')
 
     market = yf.download(' '.join(list(assets['Forex'])+list(assets['Market'])[:-1]), start='2021-04-01')['Close']
@@ -60,9 +60,6 @@ def build_data():
                 # df['PnL', portfolio, asset] = df['Deposit', portfolio, asset] - df['DepositEUR', portfolio, asset]
                 # df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
 
-                df['Cotation', portfolio, asset] = df['Cotation', 'Market', assets.loc[asset]['Market']]
-                df['Currency', portfolio, asset] = assets.loc[asset]['Currency']
-
             else:
                 df = pd.concat([df, pd.DataFrame({
                     ('Amount', portfolio, asset): amt,
@@ -77,8 +74,10 @@ def build_data():
                 df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
                 df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] / df['Cotation', 'Market', assets.loc[asset]['Forex']]
 
-                df['Cotation', portfolio, asset] = df['Cotation', 'Market', assets.loc[asset]['Market']]
-                df['Currency', portfolio, asset] = assets.loc[asset]['Currency']
+
+            df['Cotation', portfolio, asset] = df['Cotation', 'Market', assets.loc[asset]['Market']]
+            df['Currency', portfolio, asset] = assets.loc[asset]['Currency']
+            df['Format', portfolio, asset] = assets.loc[asset]['Format']
 
 
         if 'DepositEUR' in df.columns and portfolio in df['DepositEUR'].columns:
