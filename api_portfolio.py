@@ -29,6 +29,13 @@ def build_data():
     market = pd.concat([market], keys=['Market'], axis=1)
     market = pd.concat([market], keys=['Cotation'], axis=1)
 
+    # operation.to_csv('.out/operation.csv')
+    # assets.to_csv('.out/assets.csv')
+    # market.to_csv('.out/market.csv')
+    # operation = pd.read_csv('.out/operation.csv')
+    # assets = pd.read_csv('.out/assets.csv')
+    # market = pd.read_csv('.out/market.csv')
+
     df = market.ffill().bfill()
     df['DepositEUR', 'All', 'All'] = 0
     df['InvestedEUR', 'All', 'All'] = 0
@@ -49,36 +56,29 @@ def build_data():
                 amt[idx] = np.sum(dfa.loc[:idx]['Amount'])
                 tot[idx] = np.sum(dfa.loc[:idx]['Total'])
 
-            if assets.loc[asset]['IsDepot'] == 'TRUE':
-                df = pd.concat([df, pd.DataFrame({
-                    ('Amount', portfolio, asset): amt,
-                        ('Deposit', portfolio, asset): tot,
-                })], axis=1).ffill().fillna(0)
-
-                print(f"\tdepot:  {asset}")
-                df['DepositEUR', portfolio, asset] = df['Deposit', portfolio, asset] * df['Cotation', 'Market', assets.loc[asset]['Forex']]
-                # df['PnL', portfolio, asset] = df['Deposit', portfolio, asset] - df['DepositEUR', portfolio, asset]
-                # df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] * df['Cotation', 'Forex', depots['Forex'][asset]]
-
-            else:
-                df = pd.concat([df, pd.DataFrame({
-                    ('Amount', portfolio, asset): amt,
-                    ('Invested', portfolio, asset): tot,
-                })], axis=1).ffill().fillna(0)
-
-                print(f"\tasset:  {asset}")
-                df['InvestedEUR', portfolio, asset] = df['Invested', portfolio, asset] / df['Cotation', 'Market', assets.loc[asset]['Forex']]
-                df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Amount', portfolio, asset]
-                df['Value', portfolio, asset] = df['Amount', portfolio, asset] * df['Cotation', 'Market', assets.loc[asset]['Market']]
-                df['ValueEUR', portfolio, asset] = df['Value', portfolio, asset] / df['Cotation', 'Market', assets.loc[asset]['Forex']]
-                df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
-                df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] / df['Cotation', 'Market', assets.loc[asset]['Forex']]
-
-
+            print(f"\t{assets.loc[asset]['Class']}:\t{asset}")
+            toEUR = df['Cotation', 'Market', assets.loc[asset]['Forex']]
             df['Cotation', portfolio, asset] = df['Cotation', 'Market', assets.loc[asset]['Market']]
+            df['Class', portfolio, asset] = assets.loc[asset]['Class']
+            df['Currency', portfolio, asset] = assets.loc[asset]['Currency']
             df['PriceFmt', portfolio, asset] = assets.loc[asset]['PriceFmt']
             df['AmountFmt', portfolio, asset] = assets.loc[asset]['AmountFmt']
             df['ValueFmt', portfolio, asset] = assets.loc[asset]['ValueFmt']
+
+            df = pd.concat([df, pd.DataFrame({
+                ('Amount', portfolio, asset): amt,
+                ('Total', portfolio, asset): tot,
+            })], axis=1).ffill().fillna(0)
+
+            df['Invested', portfolio, asset] = df['Total', portfolio, asset]
+
+            df['PRU', portfolio, asset] = df['Invested', portfolio, asset] / df['Amount', portfolio, asset]
+            df['Value', portfolio, asset] = df['Amount', portfolio, asset] * df['Cotation', portfolio, asset]
+            df['PnL', portfolio, asset] = df['Value', portfolio, asset] - df['Invested', portfolio, asset]
+            df['InvestedEUR', portfolio, asset] = df['Invested', portfolio, asset] / toEUR
+            df['ValueEUR', portfolio, asset] = df['Value', portfolio, asset] / toEUR
+            df['PnLEUR', portfolio, asset] = df['PnL', portfolio, asset] / toEUR
+
 
 
         if 'DepositEUR' in df.columns and portfolio in df['DepositEUR'].columns:
