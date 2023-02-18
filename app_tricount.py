@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Tricount Cocon")
 import plotly.graph_objects as go
 import warnings
 warnings.simplefilter(action='ignore', category=pd.core.common.SettingWithCopyWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 from api_tricount import * 
 
@@ -55,40 +56,53 @@ if len(periods) == 0:
 else:
     overview, details = st.tabs(["Overview", "Details"])
     with overview:
+        period_graph = st.radio('Period for graph', periods, horizontal=True, key=f'{people} graph key')
+
         for people in peoples:
-            # col1, col2 = st.columns(2)
-            # with col1:
-            # with col2:
-            #     draw_bar = st.checkbox("Draw bars", value=True)
-            st.subheader(people)
-
-            period = st.radio('Graph', periods, horizontal=True, key=f'{people} graph key')
-
+            st.header(people)
+            st.write(period_graph)
             df = pd.concat([
-                result[period][people][['Revenus']],
-                -result[period][people][['Dépenses']],
-                -postes[period][people][['Quotidien', 'Achats', 'Extra', 'Loisir']],
-                result[period][people][['Reste à vivre', 'Capital investi']],
-                -postes[period][people][['Investissement', 'Formation']],
-                result[period][people][['Epargne']],
+                result[period_graph][people][['Revenus']],
+                -result[period_graph][people][['Dépenses']],
+                -postes[period_graph][people][['Quotidien', 'Achats', 'Extra', 'Loisir']],
+                result[period_graph][people][['Reste à vivre', 'Capital investi']],
+                -postes[period_graph][people][['Investissement', 'Formation']],
+                result[period_graph][people][['Epargne']],
             ])
-            print(df)
-            st.plotly_chart(go.Figure(go.Bar(x=df.index.to_list(), y=df.values)).update_layout(height=450), use_container_width=True)
+            colors = ['green', 'firebrick', 'chocolate', 'chocolate', 'chocolate', 'chocolate', 'goldenrod', 'dodgerblue', 'skyblue', 'skyblue','gold']
+            st.plotly_chart(go.Figure(go.Bar(x=df.index.to_list(), y=df.values, marker_color=colors))
+            .update_layout(height=450), use_container_width=True)
 
             col1, _, col2 = st.columns([4,1,4])
             with col1:
+                st.subheader("Répartition des revenus")
                 df = pd.concat([
-                    # result[period][people][['Revenus']],
-                    -result[period][people][['Dépenses']],
-                    result[period][people][['Reste à vivre', 'Capital investi', 'Epargne']],
+                    -result[period_graph][people][['Dépenses']],
+                    result[period_graph][people][['Capital investi', 'Epargne']],
                 ])
-                st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list())), use_container_width=True)
+                colors = ['firebrick', 'dodgerblue', 'gold']
+                colors_bis = colors
+                for i, idx in enumerate(df.index):
+                    if df[idx] < 0:
+                        st.write(f"/!\ {idx} = {df[idx]} € < 0")
+                        df = df.drop(idx)
+                        colors.remove(colors_bis[i])
+                st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list(), marker=dict(colors=colors))), use_container_width=True)
+
             with col2:
+                st.subheader("Catégories de dépense")
                 df = pd.concat([
-                    -postes[period][people][['Quotidien', 'Achats', 'Extra', 'Loisir']],
-                    result[period][people][['Reste à vivre']],
+                    -postes[period_graph][people][['Quotidien', 'Achats', 'Extra', 'Loisir']],
+                    result[period_graph][people][['Reste à vivre']],
                 ])
-                st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list())), use_container_width=True)
+                colors = ['chocolate', 'saddlebrown', 'sienna', 'peru', 'goldenrod']
+                colors_bis = colors
+                for i, idx in enumerate(df.index):
+                    if df[idx] < 0:
+                        st.write(f"/!\ {idx} = {df[idx]} € < 0")
+                        df = df.drop(idx)
+                        colors.remove(colors_bis[i])
+                st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list(), marker=dict(colors=colors))), use_container_width=True)
 
 
             st.write("Synthèse")
@@ -131,4 +145,3 @@ else:
                 rows[i] = pd.Series(dtype='int')
             rows[period] = detail[period][peoples]
         st.table(pd.concat(rows, axis=1).style.format("{:.0f}").highlight_null(props="color: transparent;"))
-        
