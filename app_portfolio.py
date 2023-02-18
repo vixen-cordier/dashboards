@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Portfolio Cordier")
 import plotly.graph_objects as go
 
 from api_portfolio import build_data
@@ -27,15 +27,15 @@ def datatable_ptf(s, ptfs):
     for ptf in ptfs:
         rows[ptf] = s[:, ptf, 'All'] 
     df = pd.concat(rows, axis=1).transpose()
-    df = df[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']]
+    df = df[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositedEUR']]
     st.dataframe(df.style.format("{:.0f}"), use_container_width=True)
 
 def datatable_asset(s: pd.Series, ptf):
-    cols = ['Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']
+    cols = ['Class', 'Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']
     # s_fmt = s[['Format']]
     s = s[cols]
     rows = {}
-    for asset in s['Cotation', ptf, :].index:
+    for asset in s['Value', ptf, :].index:
         # print(asset)
         # print(s_fmt['Format', ptf, asset])
         rows[asset] = s[:, ptf, asset]#.map(str(s_fmt['Format', ptf, asset]).format)
@@ -48,7 +48,7 @@ def datatable_asset(s: pd.Series, ptf):
 
 
 def scatter_ptf(df, ptf):
-    metrics = ['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositEUR']
+    metrics = ['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositedEUR']
     fig = go.Figure()
     for metric in metrics:
         fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, 'All'], name=metric))
