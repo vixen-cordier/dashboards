@@ -107,7 +107,7 @@ def concat_data(detail: Dict[str, pd.DataFrame], dict: pd.DataFrame):
         dfr['Dépenses'] = dfp['Quotidien'] + dfp['Loisir'] + dfp['Extra'] + dfp['Achats']
         dfr['Reste à vivre'] = dfr['Revenus'] + dfr['Dépenses']
         dfr['Reste à vivre %'] = dfr['Reste à vivre'] / dfr['Revenus'] * 100
-        dfr['Capital investi'] = - dfp['Investissement']
+        dfr['Capital investi'] = - dfp['Investissement'] - dfp['Formation']
         dfr['Capital investi %'] = dfr['Capital investi'] / dfr['Revenus'] * 100
         dfr['Epargne'] = dfr['Reste à vivre'] - dfr['Capital investi']
         dfr['Epargne %'] = dfr['Epargne'] / dfr['Revenus'] * 100
