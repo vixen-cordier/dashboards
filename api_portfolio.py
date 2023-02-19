@@ -25,9 +25,11 @@ def build_data():
     print(assets, '\n')
 
     market = yf.download(' '.join(list(assets['Forex'])+list(assets['Market'])[:-1]), start='2021-04-01')['Close']
-    market = pd.concat([market, greenbull], axis=1)
-    market = pd.concat([market], keys=['Market'], axis=1)
-    market = pd.concat([market], keys=['Cotation'], axis=1)
+    market = pd.concat([market, greenbull], axis=1).ffill().bfill()
+    print(market.columns)
+
+    # market = pd.concat([market], keys=['Market'], axis=1)
+    # market = pd.concat([market], keys=['Cotation'], axis=1)
 
     # operation.to_csv('.out/operation.csv')
     # assets.to_csv('.out/assets.csv')
@@ -36,7 +38,7 @@ def build_data():
     # assets = pd.read_csv('.out/assets.csv')
     # market = pd.read_csv('.out/market.csv')
 
-    df = market.ffill().bfill()
+    df = market
     # print(df.head())
 
     for portfolio in np.unique(operation['Portfolio']):
