@@ -37,7 +37,7 @@ def datatable_ptf(s: pd.Series, ptfs):
     st.dataframe(df.style.format("{:.0f}"), use_container_width=True)
 
 def datatable_asset(s: pd.Series, ptf):
-    cols = ['Class', 'Cotation', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']
+    cols = ['Class', 'Market', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']
     # s_fmt = s[['Format']]
     s = s[cols]
     rows = {}
