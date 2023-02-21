@@ -21,19 +21,19 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 </style>
 """, unsafe_allow_html=True)
 
-# 'Cash', 'Commodities', 'Cryptocurrency', 'Deposit', 'Equities', 'Fixed Income',
+
 def datatable_ptf(s: pd.Series, ptfs):
     rows = {}
     for ptf in ptfs:
         rows[ptf] = pd.concat({
-            'ValueEUR': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
-            'InvestedEUR': s.loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'InvestedEUR']].sum(),
-            'CashEUR': s.loc[pd.IndexSlice[ptf, 'Cash', 'All', 'ValueEUR']],
-            'PnLEUR': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
-            'DepositedEUR': s.loc[pd.IndexSlice[ptf, 'Deposit', 'All', 'InvestedEUR']],
+            'Value': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
+            'Invested': s.loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'InvestedEUR']].sum(),
+            'Cash': s.loc[pd.IndexSlice[ptf, 'Cash', 'All', 'ValueEUR']],
+            'PnL': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
+            'Deposited': -s.loc[pd.IndexSlice[ptf, 'Deposit', 'All', 'InvestedEUR']],
         }) 
     df = pd.concat(rows, axis=1).transpose()
-    df = df[['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositedEUR']]
+    df = df[['Value', 'Invested', 'Cash', 'PnL', 'Deposited']]
     st.dataframe(df.style.format("{:.0f}"), use_container_width=True)
 
 def datatable_asset(s: pd.Series, ptf):
