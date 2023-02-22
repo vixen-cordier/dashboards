@@ -9,7 +9,7 @@ from api_portfolio import build_data
 def get_data(): 
     return build_data()
 
-data = get_data()
+data, assets = get_data()
 
 st.title("Portfolio Dashboard")
 st.write("""
@@ -25,20 +25,30 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 def datatable_ptf(s: pd.Series, ptfs):
     rows = {}
     for ptf in ptfs:
-        rows[ptf] = pd.concat({
+        rows[ptf] = {
             'Value': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
             'Invested': s.loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'InvestedEUR']].sum(),
             'Cash': s.loc[pd.IndexSlice[ptf, 'Cash', 'All', 'ValueEUR']],
-            'PnL': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
+            'PnL': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'PnLEUR']].sum(),
             'Deposited': -s.loc[pd.IndexSlice[ptf, 'Deposit', 'All', 'InvestedEUR']],
-        }) 
-    df = pd.concat(rows, axis=1).transpose()
-    df = df[['Value', 'Invested', 'Cash', 'PnL', 'Deposited']]
-    st.dataframe(df.style.format("{:.0f}"), use_container_width=True)
+        }
+    st.dataframe(pd.DataFrame(rows).transpose().style.format("{:.0f} €"), use_container_width=True)
+
 
 def datatable_asset(s: pd.Series, ptf):
+    rows = {}
+    for asset in np.unique(df.columns.get_level_values(1)):
+        rows[ptf] = {
+            'Value': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
+            'Invested': s.loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'InvestedEUR']].sum(),
+            'Cash': s.loc[pd.IndexSlice[ptf, 'Cash', 'All', 'ValueEUR']],
+            'PnL': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'PnLEUR']].sum(),
+            'Deposited': -s.loc[pd.IndexSlice[ptf, 'Deposit', 'All', 'InvestedEUR']],
+        }
+    st.dataframe(pd.DataFrame(rows).transpose().style.format("{:.0f} €"), use_container_width=True)
+
     cols = ['Class', 'Market', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']
-    # s_fmt = s[['Format']]
+    # s_fmt = s[['Format']] 
     s = s[cols]
     rows = {}
     for asset in s['Value', ptf, :].index:
