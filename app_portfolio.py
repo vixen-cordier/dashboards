@@ -37,30 +37,17 @@ def datatable_ptf(s: pd.Series, ptfs):
 
 def datatable_asset(s: pd.Series, ptf):
     rows = {}
-    for asset in np.unique(df.columns.get_level_values(1)):
-        rows[ptf] = {
-            'Value': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(),
-            'Invested': s.loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'InvestedEUR']].sum(),
-            'Cash': s.loc[pd.IndexSlice[ptf, 'Cash', 'All', 'ValueEUR']],
-            'PnL': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'PnLEUR']].sum(),
-            'Deposited': -s.loc[pd.IndexSlice[ptf, 'Deposit', 'All', 'InvestedEUR']],
+    for (ptf, classs, asset, _) in s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], :, 'Market']].index:
+        print(ptf, classs, asset, assets.loc[asset]['PriceFmt'], assets.loc[asset]['PriceFmt'].format(s[ptf, classs, asset, 'Market']))
+        rows[classs, asset] = {
+            'Market': assets.loc[asset]['PriceFmt'].format(s[ptf, classs, asset, 'Market']),
+            'PRU': assets.loc[asset]['PriceFmt'].format(s[ptf, classs, asset, 'PRU']),
+            'Position': assets.loc[asset]['PositionFmt'].format(s[ptf, classs, asset, 'Position']),
+            'Value': assets.loc[asset]['ValueFmt'].format(s[ptf, classs, asset, 'Value']),
+            'Invested': assets.loc[asset]['ValueFmt'].format(s[ptf, classs, asset, 'Invested']),
+            'PnL': assets.loc[asset]['ValueFmt'].format(s[ptf, classs, asset, 'PnL']),
         }
-    st.dataframe(pd.DataFrame(rows).transpose().style.format("{:.0f} €"), use_container_width=True)
-
-    cols = ['Class', 'Market', 'PRU', 'Amount', 'Value', 'Invested', 'PnL']
-    # s_fmt = s[['Format']] 
-    s = s[cols]
-    rows = {}
-    for asset in s['Value', ptf, :].index:
-        # print(asset)
-        # print(s_fmt['Format', ptf, asset])
-        rows[asset] = s[:, ptf, asset]#.map(str(s_fmt['Format', ptf, asset]).format)
-    df = pd.concat(rows, axis=1).transpose()
-    st.dataframe(df[cols].style
-        .format({('Amount', 'Value', 'Invested', 'PnL'): '{:.0f}'})
-        .highlight_null(props="color: transparent;")
-        , use_container_width=True)
-    # st.table(pd.concat(rows, axis=1).transpose().style.format("{:.0f}"))
+    st.dataframe(pd.DataFrame(rows).transpose(), use_container_width=True)
 
 
 def scatter_ptf(df, ptf):
@@ -144,35 +131,35 @@ all_tab, zen_tab, dma_tab = st.tabs(["All", "ZEN", "DMA"])
 with all_tab:
     st.header("Portfolio overview")
     datatable_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
-    scatter_ptf(data, 'All')
+    # scatter_ptf(data, 'All')
 
-    st.header("Portfolio repartition")
-    pie_col, _, lin_col = st.columns([2, 1, 4])
-    with pie_col:
-        pie_ptf(data.iloc[-1], ['ZEN', 'DMA'])
-    with lin_col:
-        stack_ptf(data, ['ZEN', 'DMA'])
+    # st.header("Portfolio repartition")
+    # pie_col, _, lin_col = st.columns([2, 1, 4])
+    # with pie_col:
+    #     pie_ptf(data.iloc[-1], ['ZEN', 'DMA'])
+    # with lin_col:
+    #     stack_ptf(data, ['ZEN', 'DMA'])
 
-    st.header("Portfolio performance")
-    bar_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
+    # st.header("Portfolio performance")
+    # bar_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
 
 
 with zen_tab:
     st.header("ZEN overview")
     datatable_ptf(data.iloc[-1], ['ZEN'])
-    scatter_ptf(data, 'ZEN')
+    # scatter_ptf(data, 'ZEN')
     
     st.header("ZEN assets")
     datatable_asset(data.iloc[-1], 'ZEN')
-    metric = st.radio('Metric: ', ['ValueEUR', 'InvestedEUR', 'PnLEUR'], horizontal=True, key=f'ZEN asset graph')
-    scatter_asset(data, 'ZEN', metric)
+    # metric = st.radio('Metric: ', ['ValueEUR', 'InvestedEUR', 'PnLEUR'], horizontal=True, key=f'ZEN asset graph')
+    # scatter_asset(data, 'ZEN', metric)
 
-    st.header("ZEN repartition")
-    pie_col, _, lin_col = st.columns([2, 1, 4])
-    with pie_col:
-        pie_asset(data.iloc[-1], 'ZEN')
-    with lin_col:
-        stack_asset(data, 'ZEN')
+    # st.header("ZEN repartition")
+    # pie_col, _, lin_col = st.columns([2, 1, 4])
+    # with pie_col:
+    #     pie_asset(data.iloc[-1], 'ZEN')
+    # with lin_col:
+    #     stack_asset(data, 'ZEN')
 
-    st.header("ZEN performance")
-    bar_asset(data.iloc[-1], 'ZEN')
+    # st.header("ZEN performance")
+    # bar_asset(data.iloc[-1], 'ZEN')
