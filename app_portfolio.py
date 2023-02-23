@@ -32,13 +32,13 @@ def datatable_ptf(s: pd.Series, ptfs):
             'PnL': s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'PnLEUR']].sum(),
             'Deposited': -s.loc[pd.IndexSlice[ptf, 'Deposit', 'All', 'InvestedEUR']],
         }
-    st.dataframe(pd.DataFrame(rows).transpose().style.format("{:.0f} €"), use_container_width=True)
+    df = pd.DataFrame(rows).transpose()[['Value', 'Invested', 'Cash', 'PnL', 'Deposited']]
+    st.dataframe(df.style.format("{:.0f} €"), use_container_width=True)
 
 
 def datatable_asset(s: pd.Series, ptf):
     rows = {}
-    for (ptf, classs, asset, _) in s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], :, 'Market']].index:
-        print(ptf, classs, asset, assets.loc[asset]['PriceFmt'], assets.loc[asset]['PriceFmt'].format(s[ptf, classs, asset, 'Market']))
+    for (ptf, classs, asset, _) in s.loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], :, 'Market']].index:
         rows[classs, asset] = {
             'Market': assets.loc[asset]['PriceFmt'].format(s[ptf, classs, asset, 'Market']),
             'PRU': assets.loc[asset]['PriceFmt'].format(s[ptf, classs, asset, 'PRU']),
@@ -47,20 +47,28 @@ def datatable_asset(s: pd.Series, ptf):
             'Invested': assets.loc[asset]['ValueFmt'].format(s[ptf, classs, asset, 'Invested']),
             'PnL': assets.loc[asset]['ValueFmt'].format(s[ptf, classs, asset, 'PnL']),
         }
-    st.dataframe(pd.DataFrame(rows).transpose(), use_container_width=True)
+    df = pd.DataFrame(rows).transpose()[['Market', 'PRU', 'Position', 'Value', 'Invested', 'PnL']]
+    st.dataframe(df, use_container_width=True)
 
 
 def scatter_ptf(df, ptf):
-    metrics = ['ValueEUR', 'InvestedEUR', 'CashEUR', 'PnLEUR', 'DepositedEUR']
+    rows = {
+        'Value': df.loc[:, pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum(axis=1),
+        'Invested': df.loc[:, pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'InvestedEUR']].sum(axis=1),
+        'Cash': df.loc[:, pd.IndexSlice[ptf, 'Cash', 'All', 'ValueEUR']],
+        'PnL': df.loc[:, pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'PnLEUR']].sum(axis=1),
+        'Deposited': -df.loc[:, pd.IndexSlice[ptf, 'Deposit', 'All', 'InvestedEUR']],
+    }
     fig = go.Figure()
-    for metric in metrics:
-        fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, 'All'], name=metric))
+    for metric in rows:
+        fig.add_trace(go.Scatter(x=rows[metric].index, y=rows[metric].values, name=metric))
     st.plotly_chart(fig, use_container_width=True)
+
 
 def scatter_asset(df, ptf, metric):
     fig = go.Figure()
-    for asset in data[metric, ptf].columns:
-        fig.add_trace(go.Scatter(x=df.index, y=df[metric, ptf, asset], name=asset))
+    for (ptf, classs, asset, _) in df.iloc[-1].loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], :, metric]].index:
+        fig.add_trace(go.Scatter(x=df.index, y=df[ptf, classs, asset, metric].values, name=asset))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -131,7 +139,7 @@ all_tab, zen_tab, dma_tab = st.tabs(["All", "ZEN", "DMA"])
 with all_tab:
     st.header("Portfolio overview")
     datatable_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
-    # scatter_ptf(data, 'All')
+    scatter_ptf(data, 'All')
 
     # st.header("Portfolio repartition")
     # pie_col, _, lin_col = st.columns([2, 1, 4])
@@ -147,12 +155,12 @@ with all_tab:
 with zen_tab:
     st.header("ZEN overview")
     datatable_ptf(data.iloc[-1], ['ZEN'])
-    # scatter_ptf(data, 'ZEN')
+    scatter_ptf(data, 'ZEN')
     
     st.header("ZEN assets")
     datatable_asset(data.iloc[-1], 'ZEN')
-    # metric = st.radio('Metric: ', ['ValueEUR', 'InvestedEUR', 'PnLEUR'], horizontal=True, key=f'ZEN asset graph')
-    # scatter_asset(data, 'ZEN', metric)
+    metric = st.radio('Metric: ', ['Value', 'Invested', 'PnL'], horizontal=True, key=f'ZEN asset graph')
+    scatter_asset(data, 'ZEN', metric)
 
     # st.header("ZEN repartition")
     # pie_col, _, lin_col = st.columns([2, 1, 4])
