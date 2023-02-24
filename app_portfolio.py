@@ -67,7 +67,7 @@ def scatter_ptf(df, ptf):
 
 def scatter_asset(df, ptf, metric):
     fig = go.Figure()
-    for (ptf, classs, asset, _) in df.iloc[-1].loc[pd.IndexSlice[ptf, ['Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], :, metric]].index:
+    for (ptf, classs, asset, _) in df.iloc[-1].loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], :, metric]].index:
         fig.add_trace(go.Scatter(x=df.index, y=df[ptf, classs, asset, metric].values, name=asset))
     st.plotly_chart(fig, use_container_width=True)
 
@@ -76,23 +76,31 @@ def pie_ptf(s, ptfs):
     value = []
     label = []
     for ptf in ptfs:
-        value.append(s['ValueEUR', ptf, 'All'])
+        value.append(s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].sum())
         label.append(ptf)
-    value.append(s['CashEUR', 'All', 'All'])
-    label.append('Cash')
     fig = go.Figure(go.Pie(values=value, labels=label))
     st.plotly_chart(fig, use_container_width=True)
+
+
+def pie_class(s, ptf):
+    value = []
+    label = []
+    for (_, classs, _, _) in s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], 'All', 'ValueEUR']].index:
+        value.append(s.loc[ptf, classs, 'All', 'ValueEUR'])
+        label.append(classs)
+    fig = go.Figure(go.Pie(values=value, labels=label))
+    st.plotly_chart(fig, use_container_width=True)
+
 
 def pie_asset(s, ptf):
     value = []
     label = []
-    for asset in s['ValueEUR', ptf, :].index:
+    for (_, classs, asset, _) in s.loc[pd.IndexSlice[ptf, ['Cash', 'Commodities', 'Cryptocurrency', 'Equities', 'Fixed Income'], :, 'ValueEUR']].index:
         if asset != 'All':
-            value.append(s['ValueEUR', ptf, asset])
+            value.append(s.loc[pd.IndexSlice[ptf, classs, asset, 'ValueEUR']].sum())
             label.append(asset)
-    value.append(s['CashEUR', ptf, 'All'])
-    label.append('Cash')
     fig = go.Figure(go.Pie(values=value, labels=label))
+    fig.update_layout(title_text=f"{ptf} asset value repartition")
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -102,6 +110,7 @@ def stack_ptf(df, ptfs):
         fig.add_trace(go.Scatter(x=df.index, y=df['ValueEUR', ptf, 'All'], name=ptf, stackgroup='one', groupnorm='percent'))
     fig.add_trace(go.Scatter(x=df.index, y=df['CashEUR', 'All', 'All'], name='Cash', stackgroup='one', groupnorm='percent'))
     st.plotly_chart(fig, use_container_width=True)
+
 
 def stack_asset(df, ptf):
     fig = go.Figure()
@@ -141,14 +150,16 @@ with all_tab:
     datatable_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
     scatter_ptf(data, 'All')
 
-    # st.header("Portfolio repartition")
-    # pie_col, _, lin_col = st.columns([2, 1, 4])
-    # with pie_col:
-    #     pie_ptf(data.iloc[-1], ['ZEN', 'DMA'])
+    pie_col, _, lin_col = st.columns([2, 1, 4])
+    with pie_col:
+        st.subheader("Portfolio value repartition")
+        pie_ptf(data.iloc[-1], ['ZEN', 'DMA']) 
+        st.subheader("Portfolio class repartition")
+        pie_class(data.iloc[-1], 'All') 
     # with lin_col:
     #     stack_ptf(data, ['ZEN', 'DMA'])
 
-    # st.header("Portfolio performance")
+    st.subheader("Portfolio performance")
     # bar_ptf(data.iloc[-1], ['All', 'ZEN', 'DMA'])
 
 
@@ -162,10 +173,12 @@ with zen_tab:
     metric = st.radio('Metric: ', ['Value', 'Invested', 'PnL'], horizontal=True, key=f'ZEN asset graph')
     scatter_asset(data, 'ZEN', metric)
 
-    # st.header("ZEN repartition")
-    # pie_col, _, lin_col = st.columns([2, 1, 4])
-    # with pie_col:
-    #     pie_asset(data.iloc[-1], 'ZEN')
+    pie_col, _, lin_col = st.columns([2, 1, 4])
+    with pie_col:
+        st.subheader("ZEN class repartition")
+        pie_class(data.iloc[-1], 'ZEN') 
+        st.subheader("ZEN asset repartition")
+        pie_asset(data.iloc[-1], 'ZEN')
     # with lin_col:
     #     stack_asset(data, 'ZEN')
 
