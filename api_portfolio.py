@@ -103,22 +103,23 @@ def build_data():
             df[portfolio, classs, asset, 'PnLEUR'] = df[portfolio, classs, asset, 'ValueEUR'] - df[portfolio, classs, asset, 'InvestedEUR']
 
 
-    print(f"\tConcate class data ...")
-    for classs in np.unique(df.columns.get_level_values(1)):
-        for portfolio in np.unique(operation['Portfolio']):
+    # print(f"\tConcate class data ...")
+        for classs in np.unique(assets['Class']):
+        # for portfolio in np.unique(operation['Portfolio']):
             if classs not in df[portfolio].columns.get_level_values(0):
-                df[portfolio, classs, 'All', 'ValueEUR'] = 0
-                df[portfolio, classs, 'All', 'InvestedEUR'] = 0
-                df[portfolio, classs, 'All', 'PnLEUR'] = 0
-            else:
-                df[portfolio, classs, 'All', 'InvestedEUR'] = df.loc[:, pd.IndexSlice[portfolio, classs, :, 'InvestedEUR']].sum(axis=1)
-                df[portfolio, classs, 'All', 'ValueEUR'] = df.loc[:, pd.IndexSlice[portfolio, classs, :, 'ValueEUR']].sum(axis=1)
-                df[portfolio, classs, 'All', 'PnLEUR'] = df[portfolio, classs, 'All', 'ValueEUR'] - df[portfolio, classs, 'All', 'InvestedEUR']
+                df[portfolio, classs, '.', 'ValueEUR'] = 0
+                df[portfolio, classs, '.', 'InvestedEUR'] = 0
+                df[portfolio, classs, '.', 'PnLEUR'] = 0
+                print(classs, 'missing')
+    #         else:
+    #             df[portfolio, classs, 'All', 'InvestedEUR'] = df.loc[:, pd.IndexSlice[portfolio, classs, :, 'InvestedEUR']].sum(axis=1)
+    #             df[portfolio, classs, 'All', 'ValueEUR'] = df.loc[:, pd.IndexSlice[portfolio, classs, :, 'ValueEUR']].sum(axis=1)
+    #             df[portfolio, classs, 'All', 'PnLEUR'] = df[portfolio, classs, 'All', 'ValueEUR'] - df[portfolio, classs, 'All', 'InvestedEUR']
 
-        df['All', classs, 'All', 'InvestedEUR'] = df.loc[:, pd.IndexSlice[:, classs, 'All', 'InvestedEUR']].sum(axis=1)
-        df['All', classs, 'All', 'ValueEUR'] = df.loc[:, pd.IndexSlice[:, classs, 'All', 'ValueEUR']].sum(axis=1)
-        df['All', classs, 'All', 'PnLEUR'] = df['All', classs, 'All', 'ValueEUR'] - df['All', classs, 'All', 'InvestedEUR']
-    print(f"\t... OK")
+    #     df['All', classs, 'All', 'InvestedEUR'] = df.loc[:, pd.IndexSlice[:, classs, 'All', 'InvestedEUR']].sum(axis=1)
+    #     df['All', classs, 'All', 'ValueEUR'] = df.loc[:, pd.IndexSlice[:, classs, 'All', 'ValueEUR']].sum(axis=1)
+    #     df['All', classs, 'All', 'PnLEUR'] = df['All', classs, 'All', 'ValueEUR'] - df['All', classs, 'All', 'InvestedEUR']
+    # print(f"\t... OK")
 
 
     return df, assets
