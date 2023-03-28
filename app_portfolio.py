@@ -43,8 +43,14 @@ for i, tab in enumerate(tabs):
                 'PnL': data.iloc[-1].loc[pd.IndexSlice[:, CLASSES, :, 'PnLEUR']].sum(),
                 'Deposited': -data.iloc[-1].loc[pd.IndexSlice[:, 'Deposit', :, 'InvestedEUR']].sum(),
             }
-            df = pd.DataFrame(rows, index=['All'])
-            st.dataframe(df.style.format("{:.0f} €"), use_container_width=True)
+            rows['Cash %'] = "{:.1f} %".format(rows['Cash'] / rows['Value'] * 100)
+            rows['PnL %'] = "{:.1f} %".format(rows['PnL'] / rows['Invested'] * 100)
+            rows['Value'] = "{:.0f} €".format(rows['Value'])
+            rows['Invested'] = "{:.0f} €".format(rows['Invested'])
+            rows['Cash'] = "{:.0f} €".format(rows['Cash'])
+            rows['PnL'] = "{:.0f} €".format(rows['PnL'])
+            rows['Deposited'] = "{:.0f} €".format(rows['Deposited'])
+            st.dataframe(pd.DataFrame(rows, index=['All'])[['Value', 'Invested', 'Cash', 'Cash %', 'PnL', 'PnL %', 'Deposited']], use_container_width=True)
 
             # Metrics line graph
             rows = {
@@ -73,8 +79,14 @@ for i, tab in enumerate(tabs):
                     'PnL': data.iloc[-1].loc[pd.IndexSlice[ptf, CLASSES, :, 'PnLEUR']].sum(),
                     'Deposited': -data.iloc[-1].loc[pd.IndexSlice[ptf, 'Deposit', :, 'InvestedEUR']].sum(),
                 }
-            df = pd.DataFrame(rows).transpose()[['Value', 'Invested', 'Cash', 'PnL', 'Deposited']]
-            st.dataframe(df.style.format("{:.0f} €"), use_container_width=True)
+                rows[ptf]['Cash %'] = "{:.1f} %".format(rows[ptf]['Cash'] / rows[ptf]['Value'] * 100)
+                rows[ptf]['PnL %'] = "{:.1f} %".format(rows[ptf]['PnL'] / rows[ptf]['Invested'] * 100)
+                rows[ptf]['Value'] = "{:.0f} €".format(rows[ptf]['Value'])
+                rows[ptf]['Invested'] = "{:.0f} €".format(rows[ptf]['Invested'])
+                rows[ptf]['Cash'] = "{:.0f} €".format(rows[ptf]['Cash'])
+                rows[ptf]['PnL'] = "{:.0f} €".format(rows[ptf]['PnL'])
+                rows[ptf]['Deposited'] = "{:.0f} €".format(rows[ptf]['Deposited'])
+            st.dataframe(pd.DataFrame(rows).transpose()[['Value', 'Invested', 'Cash', 'Cash %', 'PnL', 'PnL %', 'Deposited']], use_container_width=True)
 
 
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -88,7 +100,7 @@ for i, tab in enumerate(tabs):
 
 
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            st.subheader("Portfolio value reparttion")
+            st.subheader("Portfolio value repartition")
             pie_col, _, lin_col = st.columns([2, 1, 4])
             
             # Pie chart
@@ -132,8 +144,11 @@ for i, tab in enumerate(tabs):
                     'Invested': data.iloc[-1].loc[pd.IndexSlice[:, classs, :, 'InvestedEUR']].sum(),
                     'PnL': data.iloc[-1].loc[pd.IndexSlice[:, classs, :, 'PnLEUR']].sum(),
                 }
-            df = pd.DataFrame(rows).transpose()[['Value', 'Invested', 'PnL']]
-            st.dataframe(df.style.format("{:.0f} €"), use_container_width=True)
+                rows[classs]['PnL %'] = "{:.1f} %".format(rows[classs]['PnL'] / rows[classs]['Invested'] * 100)
+                rows[classs]['Value'] = "{:.0f} €".format(rows[classs]['Value'])
+                rows[classs]['Invested'] = "{:.0f} €".format(rows[classs]['Invested'])
+                rows[classs]['PnL'] = "{:.0f} €".format(rows[classs]['PnL'])
+            st.dataframe(pd.DataFrame(rows).transpose()[['Value', 'Invested', 'PnL', 'PnL %']], use_container_width=True)
 
 
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -193,8 +208,14 @@ for i, tab in enumerate(tabs):
                 'PnL': data.iloc[-1].loc[pd.IndexSlice[ptf, CLASSES, :, 'PnLEUR']].sum(),
                 'Deposited': -data.iloc[-1].loc[pd.IndexSlice[ptf, 'Deposit', :, 'InvestedEUR']].sum(),
             }
-            df = pd.DataFrame(rows, index=['All'])
-            st.dataframe(df.style.format("{:.0f} €"), use_container_width=True)
+            rows['Cash %'] = "{:.1f} %".format(rows['Cash'] / rows['Value'] * 100)
+            rows['PnL %'] = "{:.1f} %".format(rows['PnL'] / rows['Invested'] * 100)
+            rows['Value'] = "{:.0f} €".format(rows['Value'])
+            rows['Invested'] = "{:.0f} €".format(rows['Invested'])
+            rows['Cash'] = "{:.0f} €".format(rows['Cash'])
+            rows['PnL'] = "{:.0f} €".format(rows['PnL'])
+            rows['Deposited'] = "{:.0f} €".format(rows['Deposited'])
+            st.dataframe(pd.DataFrame(rows, index=['All'])[['Value', 'Invested', 'Cash', 'Cash %', 'PnL', 'PnL %', 'Deposited']], use_container_width=True)
 
             # Metrics line graph
             rows = {
@@ -221,8 +242,11 @@ for i, tab in enumerate(tabs):
                     'Invested': data.iloc[-1].loc[pd.IndexSlice[ptf, classs, :, 'InvestedEUR']].sum(),
                     'PnL': data.iloc[-1].loc[pd.IndexSlice[ptf, classs, :, 'PnLEUR']].sum(),
                 }
-            df = pd.DataFrame(rows).transpose()[['Value', 'Invested', 'PnL']]
-            st.dataframe(df.style.format("{:.0f} €"), use_container_width=True)
+                rows[classs]['PnL %'] = "{:.1f} %".format(rows[classs]['PnL'] / rows[classs]['Invested'] * 100)
+                rows[classs]['Value'] = "{:.0f} €".format(rows[classs]['Value'])
+                rows[classs]['Invested'] = "{:.0f} €".format(rows[classs]['Invested'])
+                rows[classs]['PnL'] = "{:.0f} €".format(rows[classs]['PnL'])
+            st.dataframe(pd.DataFrame(rows).transpose()[['Value', 'Invested', 'PnL', 'PnL %']], use_container_width=True)
 
 
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -276,15 +300,21 @@ for i, tab in enumerate(tabs):
             rows = {}
             for (ptf, classs, asset, _) in data.iloc[-1].loc[pd.IndexSlice[ptf, CLASSES, :, 'Market']].index:
                 rows[classs, asset] = {
-                    'Market': assets.loc[asset]['PriceFmt'].format(data.iloc[-1][ptf, classs, asset, 'Market']),
-                    'PRU': assets.loc[asset]['PriceFmt'].format(data.iloc[-1][ptf, classs, asset, 'PRU']),
-                    'Position': assets.loc[asset]['PositionFmt'].format(data.iloc[-1][ptf, classs, asset, 'Position']),
-                    'Value': assets.loc[asset]['ValueFmt'].format(data.iloc[-1][ptf, classs, asset, 'Value']),
-                    'Invested': assets.loc[asset]['ValueFmt'].format(data.iloc[-1][ptf, classs, asset, 'Invested']),
-                    'PnL': assets.loc[asset]['ValueFmt'].format(data.iloc[-1][ptf, classs, asset, 'PnL']),
+                    'Market': data.iloc[-1][ptf, classs, asset, 'Market'],
+                    'PRU': data.iloc[-1][ptf, classs, asset, 'PRU'],
+                    'Position': data.iloc[-1][ptf, classs, asset, 'Position'],
+                    'Value': data.iloc[-1][ptf, classs, asset, 'Value'],
+                    'Invested': data.iloc[-1][ptf, classs, asset, 'Invested'],
+                    'PnL': data.iloc[-1][ptf, classs, asset, 'PnL'],
                 }
-            df = pd.DataFrame(rows).transpose()[['Market', 'PRU', 'Position', 'Value', 'Invested', 'PnL']]
-            st.dataframe(df, use_container_width=True)
+                rows[classs, asset]['PnL %'] = "{:.1f} %".format(rows[classs, asset]['PnL'] / rows[classs, asset]['Invested'] * 100)
+                rows[classs, asset]['Market'] = assets.loc[asset]['PriceFmt'].format(rows[classs, asset]['Market'])
+                rows[classs, asset]['PRU'] = assets.loc[asset]['PriceFmt'].format(rows[classs, asset]['PRU'])
+                rows[classs, asset]['Position'] = assets.loc[asset]['PositionFmt'].format(rows[classs, asset]['Position'])
+                rows[classs, asset]['Value'] = assets.loc[asset]['ValueFmt'].format(rows[classs, asset]['Value'])
+                rows[classs, asset]['Invested'] = assets.loc[asset]['ValueFmt'].format(rows[classs, asset]['Invested'])
+                rows[classs, asset]['PnL'] = assets.loc[asset]['ValueFmt'].format(rows[classs, asset]['PnL'])
+            st.dataframe(pd.DataFrame(rows).transpose()[['Market', 'PRU', 'Position', 'Value', 'Invested', 'PnL', 'PnL %']], use_container_width=True)
 
 
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -329,116 +359,3 @@ for i, tab in enumerate(tabs):
                 label.append(asset)
             fig = go.Figure(go.Bar(x=value, y=label, orientation='h'))
             st.plotly_chart(fig, use_container_width=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            # # ========================================================================
-            # st.header(f"{PTFS[i-1]} overview")
-            # # Datatable
-            # rows = {
-            #     'Value': data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], CLASSES, :, 'ValueEUR']].sum(),
-            #     'Invested': data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], CLASSES_NOCASH, :, 'InvestedEUR']].sum(),
-            #     'Cash': data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], 'Cash', :, 'ValueEUR']].sum(),
-            #     'PnL': data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], CLASSES, :, 'PnLEUR']].sum(),
-            #     'Deposited': -data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], 'Deposit', :, 'InvestedEUR']].sum(),
-            # }
-            # df = pd.DataFrame(rows, index=[PTFS[i-1]])#.transpose()[['Value', 'Invested', 'Cash', 'PnL', 'Deposited']]
-            # st.dataframe(df.style.format("{:.0f} €"), use_container_width=True)
-
-            # # Metrics line graph 
-            # rows = {
-            #     'Value': data.loc[:, pd.IndexSlice[PTFS[i-1], CLASSES, :, 'ValueEUR']].sum(axis=1),
-            #     'Invested': data.loc[:, pd.IndexSlice[PTFS[i-1], CLASSES_NOCASH, :, 'InvestedEUR']].sum(axis=1),
-            #     'Cash': data.loc[:, pd.IndexSlice[PTFS[i-1], 'Cash', :, 'ValueEUR']].sum(axis=1),
-            #     'PnL': data.loc[:, pd.IndexSlice[PTFS[i-1], CLASSES, :, 'PnLEUR']].sum(axis=1),
-            #     'Deposited': -data.loc[:, pd.IndexSlice[PTFS[i-1], 'Deposit', :, 'InvestedEUR']].sum(axis=1),
-            # }
-            # fig = go.Figure()
-            # for metric in rows:
-            #     fig.add_trace(go.Scatter(x=rows[metric].index, y=rows[metric].values, name=metric))
-            # st.plotly_chart(fig, use_container_width=True)
-            
-
-            # # # ========================================================================
-            # # st.header(f"{PTFS[i-1]} assets")
-            # # # Datatable
-            # # rows = {}
-            # # for (ptf, classs, asset, _) in data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], CLASSES_NOCASH, :, 'Market']].index:
-            # #     rows[classs, asset] = {
-            # #         'Market': data.iloc[-1].loc[asset]['PriceFmt'].format(data.iloc[-1][PTFS[i-1], classs, asset, 'Market']),
-            # #         'PRU': data.iloc[-1].loc[asset]['PriceFmt'].format(data.iloc[-1][PTFS[i-1], classs, asset, 'PRU']),
-            # #         'Position': data.iloc[-1].loc[asset]['PositionFmt'].format(data.iloc[-1][PTFS[i-1], classs, asset, 'Position']),
-            # #         'Value': data.iloc[-1].loc[asset]['ValueFmt'].format(data.iloc[-1][PTFS[i-1], classs, asset, 'Value']),
-            # #         'Invested': data.iloc[-1].loc[asset]['ValueFmt'].format(data.iloc[-1][PTFS[i-1], classs, asset, 'Invested']),
-            # #         'PnL': data.iloc[-1].loc[asset]['ValueFmt'].format(data.iloc[-1][PTFS[i-1], classs, asset, 'PnL']),
-            # #     }
-            # # df = pd.DataFrame(rows).transpose()[['Market', 'PRU', 'Position', 'Value', 'Invested', 'PnL']]
-            # # st.dataframe(df, use_container_width=True)
-
-            # # # Metrics line graph
-            # # metric = st.radio('Metric: ', ['ValueEUR', 'InvestedEUR', 'PnLEUR'], horizontal=True, key=f'ZEN asset graph')
-            # # fig = go.Figure()
-            # # for (ptf, classs, asset, _) in data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], CLASSES, :, metric]].index:
-            # #     fig.add_trace(go.Scatter(x=data.index, y=data[ptf, classs, asset, metric].values, name=asset))
-            # # st.plotly_chart(fig, use_container_width=True)
-
-            # # ========================================================================
-            # st.subheader(f"{PTFS[i-1]} class repartition")
-            # pie_col, _, lin_col = st.columns([2, 1, 4])
-            # with pie_col:
-            #     value = []
-            #     label = []
-            #     for classs in CLASSES:
-            #         value.append(data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], classs, :, 'ValueEUR']].sum())
-            #         label.append(classs)
-            #     fig = go.Figure(go.Pie(values=value, labels=label))
-            #     st.plotly_chart(fig, use_container_width=True)
-
-            # with lin_col:
-            #     fig = make_subplots(specs=[[{"secondary_y": True}]])
-            #     for classs in CLASSES:
-            #         fig.add_trace(go.Scatter(x=data.index, y=data.loc[:, pd.IndexSlice[PTFS[i-1], classs, :, 'ValueEUR']].sum(axis=1), 
-            #                                 name=classs, stackgroup='one', groupnorm='percent'))
-            #         # fig.add_trace(go.Scatter(x=data.index, y=data.loc[:, pd.IndexSlice[ptf, classs, :, 'ValueEUR']].sum(axis=1), 
-            #         #                          name=classs), secondary_y=True)
-            #     # fig.update_yaxes(rangemode='tozero')
-            #     st.plotly_chart(fig, use_container_width=True)
-
-            # # ========================================================================
-            # st.subheader(f"{PTFS[i-1]} asset repartition")
-            # pie_col, _, lin_col = st.columns([2, 1, 4])
-            # with pie_col:
-            #     value = []
-            #     label = []
-            #     for (_, classs, asset, _) in data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], CLASSES, :, 'ValueEUR']].index:
-            #         value.append(data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], classs, asset, 'ValueEUR']].sum())
-            #         label.append(asset)
-            #     fig = go.Figure(go.Pie(values=value, labels=label))
-            #     st.plotly_chart(fig, use_container_width=True)
-            
-            # with lin_col:
-            #     fig = go.Figure()
-            #     for (_, classs, asset, _) in data.iloc[-1].loc[pd.IndexSlice[PTFS[i-1], CLASSES, :, 'ValueEUR']].index:
-            #         fig.add_trace(go.Scatter(x=data.index, y=data[PTFS[i-1], classs, asset, 'ValueEUR'], 
-            #                                 name=asset, stackgroup='one', groupnorm='percent'))
-            #     st.plotly_chart(fig, use_container_width=True)
-
-            # # ========================================================================
-            # st.subheader(f"{PTFS[i-1]} asset performance")
-            # # bar_asset(data.iloc[-1], 'ZEN')

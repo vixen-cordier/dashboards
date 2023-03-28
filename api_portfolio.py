@@ -21,7 +21,7 @@ def build_data():
     ss = gc.open_by_key(st.secrets['portfolio'].spreadsheet_key)
     dicts = pd.DataFrame(ss.worksheet('Dict').get_all_records())
     operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
-    greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
+    greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records())['GREENBULL'].sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
     assets = dicts.set_index('Asset')
     print(assets)
 
@@ -110,7 +110,7 @@ def build_data():
                 df[portfolio, classs, '.', 'ValueEUR'] = 0
                 df[portfolio, classs, '.', 'InvestedEUR'] = 0
                 df[portfolio, classs, '.', 'PnLEUR'] = 0
-                print(classs, 'missing')
+                print('\t\t', classs, 'missing')
     #         else:
     #             df[portfolio, classs, 'All', 'InvestedEUR'] = df.loc[:, pd.IndexSlice[portfolio, classs, :, 'InvestedEUR']].sum(axis=1)
     #             df[portfolio, classs, 'All', 'ValueEUR'] = df.loc[:, pd.IndexSlice[portfolio, classs, :, 'ValueEUR']].sum(axis=1)
@@ -119,7 +119,7 @@ def build_data():
     #     df['All', classs, 'All', 'InvestedEUR'] = df.loc[:, pd.IndexSlice[:, classs, 'All', 'InvestedEUR']].sum(axis=1)
     #     df['All', classs, 'All', 'ValueEUR'] = df.loc[:, pd.IndexSlice[:, classs, 'All', 'ValueEUR']].sum(axis=1)
     #     df['All', classs, 'All', 'PnLEUR'] = df['All', classs, 'All', 'ValueEUR'] - df['All', classs, 'All', 'InvestedEUR']
-    # print(f"\t... OK")
+    print(f"\t... OK")
 
 
     return df, assets
