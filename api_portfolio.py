@@ -21,7 +21,7 @@ def build_data():
     ss = gc.open_by_key(st.secrets['portfolio'].spreadsheet_key)
     dicts = pd.DataFrame(ss.worksheet('Dict').get_all_records())
     operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
-    greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records())['GREENBULL'].sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
+    greenbull = pd.DataFrame(ss.worksheet('GREENBULL').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')[['GREENBULL']]
     assets = dicts.set_index('Asset')
     print(assets)
 
