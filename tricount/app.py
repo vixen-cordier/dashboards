@@ -7,14 +7,14 @@ import warnings
 warnings.simplefilter(action='ignore', category=pd.core.common.SettingWithCopyWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
-from tricount import api 
+from api import *
 
 @st.experimental_memo 
 def get_data():
-    data, dict = api.fetch_data()
-    data = api.build_data(data)
-    detail = api.split_data(data, dict)
-    postes, result = api.concat_data(detail, dict)
+    data, dict = fetch_data()
+    data = build_data(data)
+    detail = split_data(data, dict)
+    postes, result = concat_data(detail, dict)
     return detail, postes, result
 
 detail, postes, result = get_data()
