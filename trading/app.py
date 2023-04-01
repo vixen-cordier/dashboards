@@ -8,4 +8,9 @@ from api import *
 def get_data():
     return build_data()
 
+trades = get_data()
+
 st.title("Trading Dashboard")
+
+fig = go.Figure(go.Bar(x=trades.index.to_list(), y=trades['Gain'].to_list()))
+st.plotly_chart(fig, use_container_width=True)

@@ -18,7 +18,7 @@ def build_data():
 
     gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
     ss = gc.open_by_key(st.secrets['portfolio'].spreadsheet_key)
-    operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')
+    operation = pd.DataFrame(ss.worksheet('Operations').get_all_records()).astype({'Date': 'datetime64[ns]'}).sort_values('Date').set_index('Date')
 
     dict = pd.DataFrame(ss.worksheet('Dict').get_all_records())
     assets = dict.set_index('Asset')
@@ -28,7 +28,7 @@ def build_data():
     ext_data = pd.DataFrame()
     for (_, sheet, columns) in conf.itertuples():
         print(sheet, columns)
-        ext_data = pd.concat([ext_data, pd.DataFrame(ss.worksheet(sheet).get_all_records()).sort_values('Date').astype({'Date': 'datetime64[ns]'}).set_index('Date')[eval(columns)]], axis=1)
+        ext_data = pd.concat([ext_data, pd.DataFrame(ss.worksheet(sheet).get_all_records()).astype({'Date': 'datetime64[ns]'}).sort_values('Date').set_index('Date')[eval(columns)]], axis=1)
 
     market = yf.download(' '.join([*assets['Forex'], *assets['Download']]), start='2021-01-01')['Close']
     market = pd.concat([market, ext_data], axis=1).ffill().bfill()

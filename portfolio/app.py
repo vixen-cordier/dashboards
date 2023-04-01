@@ -3,7 +3,6 @@ import pandas as pd
 import streamlit as st
 st.set_page_config(layout="wide", page_title="Portfolio Cordier")
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 from api import *
 
