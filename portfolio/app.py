@@ -5,11 +5,11 @@ st.set_page_config(layout="wide", page_title="Portfolio Cordier")
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from api_portfolio import build_data
+from portfolio import api 
 
 @st.experimental_memo
 def get_data(): 
-    return build_data()
+    return api.build_data()
 
 data, assets = get_data()
 
