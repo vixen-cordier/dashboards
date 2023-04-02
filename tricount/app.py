@@ -20,14 +20,13 @@ def get_data():
 detail, postes, result = get_data()
 
 PEOPLES = ['Total', 'Lucie', 'Vincent']
-period_x = {}
+periods = []
 with st.sidebar:
     people = st.radio("Choose", PEOPLES)
     st.markdown('---')
     for period in detail.keys():
-        period_x[period] = st.checkbox(period)
-
-periods = [period for period, check in period_x.items() if check==True]
+        if st.checkbox(period):
+            periods.append(period)
 
 
 print("""
