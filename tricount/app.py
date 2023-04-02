@@ -52,7 +52,7 @@ if len(periods) == 0:
 else:
     overview, details = st.tabs(["Overview", "Details"])
     with overview:
-        period_graph = st.radio('Period for graph', periods, horizontal=True, key=f'{people} graph key')
+        period_graph = st.radio('Period for graph', periods, horizontal=True, key=f'{people} graph key', label_visibility='collapsed')
 
         df = pd.concat([
             result[period_graph][people][['Revenus']],
