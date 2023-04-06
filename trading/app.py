@@ -48,7 +48,7 @@ with manage_axis:
     date = st.slider("Slider to filter data", value=(start_date, ended_date), format="YY-MM-DD", label_visibility='collapsed')
     # axis = st.radio("Horizontal axis graph", ['per Trade', 'per Date'], horizontal=True, key="Horizontal axis", label_visibility='hidden')
     # if axis == 'per Trade':
-    trades['unit'] = trades_unit.loc[(trades_unit['Date', '.'] > date[0]) & (trades_unit['Date', '.'] < date[1])]
+    trades['unit'] = trades_unit.loc[(trades_unit['Date', '.'] >= date[0]) & (trades_unit['Date', '.'] <= date[1])]
     # elif axis == 'per Date':
     trades['date'] = trades_date.loc[date[0]:date[1]]
     # else: 
@@ -71,7 +71,7 @@ def show_graph(trades:pd.DataFrame):
                 fig.add_trace(go.Scatter(x=trades.index.to_list(), y=trades[('Balance', col)].to_list(), name=col.replace('_', ' ')))
     st.plotly_chart(fig, use_container_width=True)  
 
-stats_tab, graph_unit, graph_date = st.tabs(['Statistics', 'Graph per Trade', 'Graph per Date'])
+graph_unit, graph_date, stats_tab = st.tabs(['Graph per Trade', 'Graph per Date', 'Statistics'])
 with graph_unit:
     show_graph(trades['unit'])
 with graph_date:
@@ -81,26 +81,24 @@ with stats_tab:
     stats = pd.DataFrame()
     s = trades['unit'].ffill().iloc[-1]
     for metric, period in s.index:
-        print('', metric, period)
         for p in periods:
             if p in period and metric in ['Count', 'Balance', *COL]:
-                print('  ', metric, period)
                 if pd.notna(s[('Count', period)]):
-                    print('    ', metric, period)
                     stats.loc[period, metric] = s[(metric, period)]
     
-    print("\n", stats.columns, "\n\n")
-    if stats.shape == (0,0):
-        st.write("No data to display")
-    else:
-        stats['WinRate'] = "{:.2f %}".format(stats['RateTP'])
-        stats['PayoffRatio'] = stats['PayoffTP'] / -stats['PayoffSL']
-        stats['Balance'] = "{:.2f €}".format(stats['Balance'])
-        for col in stats.columns:
-            if 'Count' in col:
-                stats[col] = "{:.0f}".format(stats[col])
-            elif 'Rate' in col:
-                stats[col] = "{:.2f %}".format(stats[col])
-            elif 'Payoff' in col:
-                stats[col] = "{:.2f %}".format(stats[col])
-        st.dataframe(stats[['Balance', 'Count', 'WinRate', 'PayoffRatio', *COL]])
+    # print("\n", stats.columns, "\n\n")
+    # if stats.shape == (0,0):
+    #     st.write("No data to display")
+    # else:
+    #     stats['WinRate'] = "{:.2f %}".format(stats['RateTP'])
+    #     stats['PayoffRatio'] = stats['PayoffTP'] / -stats['PayoffSL']
+    #     stats['Balance'] = "{:.2f €}".format(stats['Balance'])
+    #     for col in stats.columns:
+    #         if 'Count' in col:
+    #             stats[col] = "{:.0f}".format(stats[col])
+    #         elif 'Rate' in col:
+    #             stats[col] = "{:.2f %}".format(stats[col])
+    #         elif 'Payoff' in col:
+    #             stats[col] = "{:.2f %}".format(stats[col])
+        # st.dataframe(stats[['Balance', 'Count', 'WinRate', 'PayoffRatio', *COL]])
+    st.dataframe(stats[['Balance', 'Count', *COL]].iloc[::-1], use_container_width=True)
