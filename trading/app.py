@@ -7,20 +7,9 @@ from api import *
 
 @st.experimental_memo 
 def get_data():
-    print("""
-    # ------------------------------------
-    # Fetch trades, build calculated trades
-    # for Trading Dashboard 
-    # ------------------------------------
-    """)
-    trades_unit = fetch_data()
-    trades_date = convert_to_time(trades_unit)
-    trades_unit = compute_stats(trades_unit)
-    trades_date = compute_stats(trades_date.reset_index(), all_stats=False).set_index(('Date', '.'))
-    return trades_unit, trades_date
+    return fetch_data()
 
-trades_unit, trades_date = get_data()
-trades = {}
+trades = get_data()
 
 print("""
     # ------------------------------------
@@ -42,63 +31,86 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 manage_axis, _, manage_graph = st.columns([5,1,5])
 
 with manage_axis:
-    st.subheader("Manage horizontal axis")
-    start_date = datetime(trades_date.index.min().year, trades_date.index.min().month, trades_date.index.min().day)
-    ended_date = datetime(trades_date.index.max().year, trades_date.index.max().month, trades_date.index.max().day)
-    date = st.slider("Slider to filter data", value=(start_date, ended_date), format="YY-MM-DD", label_visibility='collapsed')
-    # axis = st.radio("Horizontal axis graph", ['per Trade', 'per Date'], horizontal=True, key="Horizontal axis", label_visibility='hidden')
-    # if axis == 'per Trade':
-    trades['unit'] = trades_unit.loc[(trades_unit['Date', '.'] >= date[0]) & (trades_unit['Date', '.'] <= date[1])]
-    # elif axis == 'per Date':
-    trades['date'] = trades_date.loc[date[0]:date[1]]
-    # else: 
-    #     print("Horizontal axis ERROR")
+    st.subheader("Manage axis")
+    date_range = trades['Date']
+    start_date = datetime(trades['Date'].min().year, trades['Date'].min().month, trades['Date'].min().day)
+    ended_date = datetime(trades['Date'].max().year, trades['Date'].max().month, trades['Date'].max().day)
+    date_range = st.slider("Date slider to filter data", value=(start_date, ended_date), format="YY-MM-DD", label_visibility='collapsed')
+    h_axis = st.radio("Horizontal axis graph", ['per Trade', 'per Date'], horizontal=True, key="Horizontal axis")
+    v_axis = st.radio("Vertical axis graph", ['in €', 'in %', 'in RR' ], horizontal=True, key="Vertical axis")
+    trades_filtered = trades.loc[(trades['Date'] >= date_range[0]) & (trades['Date'] <= date_range[1])]
 
 with manage_graph:
     st.subheader("Choose period results")
-    PERIOD = ['Globally', 'Yearly', 'Monthly', 'Weekly']
     periods = []
-    for period in PERIOD:
+    for period in ['Globally', 'Yearly', 'Monthly', 'Weekly']:
         if st.checkbox(period):
             periods.append(period)
 
+st.markdown('---')
 
-def show_graph(trades:pd.DataFrame):
-    fig = go.Figure(go.Bar(x=trades.index.to_list(), y=trades[('Gain', 'Globally')].to_list(), name='Trades'))
-    for col in trades['Balance'].columns.get_level_values(0):
-        for period in periods:
-            if period in col:
-                fig.add_trace(go.Scatter(x=trades.index.to_list(), y=trades[('Balance', col)].to_list(), name=col.replace('_', ' ')))
-    st.plotly_chart(fig, use_container_width=True)  
 
-graph_unit, graph_date, stats_tab = st.tabs(['Graph per Trade', 'Graph per Date', 'Statistics'])
-with graph_unit:
-    show_graph(trades['unit'])
-with graph_date:
-    show_graph(trades['date'])
-with stats_tab:
-    COL = [m+r for r in ['TP', 'BE', 'SL'] for m in ['Count', 'Rate', 'Payoff']]
-    stats = pd.DataFrame()
-    s = trades['unit'].ffill().iloc[-1]
-    for metric, period in s.index:
-        for p in periods:
-            if p in period and metric in ['Count', 'Balance', *COL]:
-                if pd.notna(s[('Count', period)]):
-                    stats.loc[period, metric] = s[(metric, period)]
+st.subheader("Graph")
+print("""\n
+    #################
+    ##### GRAPH #####
+    #################
+""")
+      
+if h_axis == 'per Trade':
+    trades_graph = compute_stats(trades_filtered)
+elif h_axis == 'per Date':
+    trades_graph = convert_to_time(trades_filtered)
+    trades_graph = compute_stats(trades_graph.reset_index(), only_balances=True).set_index(('Date', '.'))
+else: 
+    print("Horizontal axis ERROR")
+print("trades_graph:", trades_graph.shape)
+
+fig = go.Figure(go.Bar(x=trades_graph.index.to_list(), y=trades_graph[('Gain', 'Globally')].to_list(), name='Trades'))
+for col in trades_graph['Balance'].columns.get_level_values(0):
+    for period in periods:
+        if period in col:
+            fig.add_trace(go.Scatter(x=trades_graph.index.to_list(), y=trades_graph[('Balance', col)].to_list(), name=col.replace('_', ' ')))
+st.plotly_chart(fig, use_container_width=True)  
+
+
+st.subheader("Stats")
+print("""\n
+    #################
+    ##### STATS #####
+    #################
+""")
+
+trades_stats = compute_stats(trades_filtered).ffill().iloc[-1]
+METRICS = [m+r for r in ['TP', 'BE', 'SL'] for m in ['Count', 'Rate', 'Payoff']]
+stats = pd.DataFrame(columns=['Balance', 'Count', 'WinRate', 'PayoffRatio', *METRICS])
+
+for metric, period in trades_stats.index:
+    if metric in stats.columns and period.split('_')[0] in periods:
+        stats.loc[period, metric] = trades_stats[(metric, period)]
+
+stats['WinRate'] = stats['RateTP']
+stats['PayoffRatio'] = stats['PayoffTP'] / -stats['PayoffSL']
+
+print("stats:", stats.shape)
+
+st.table(stats.iloc[::-1].style
+    .format({
+        "Balance": "{:.0f} €",
+        "Count": "{:.0f}",
+        "WinRate": "{:.0%}",
+        "PayoffRatio": "{:.2f}",
+        "CountTP": "{:.0f}",
+        "RateTP": "{:.0%}",
+        "PayoffTP": "{:.0f} €",
+        "CountBE": "{:.0f}",
+        "RateBE": "{:.0%}",
+        "PayoffBE": "{:.0f} €",
+        "CountSL": "{:.0f}",
+        "RateSL": "{:.0%}",
+        "PayoffSL": "{:.0f} €",
+    })
+    .highlight_null(props="color: transparent;")
+    .set_properties(**{'font-weight': 'bold'}, subset=['Balance', 'Count', 'WinRate', 'PayoffRatio'])
+) 
     
-    # print("\n", stats.columns, "\n\n")
-    # if stats.shape == (0,0):
-    #     st.write("No data to display")
-    # else:
-    #     stats['WinRate'] = "{:.2f %}".format(stats['RateTP'])
-    #     stats['PayoffRatio'] = stats['PayoffTP'] / -stats['PayoffSL']
-    #     stats['Balance'] = "{:.2f €}".format(stats['Balance'])
-    #     for col in stats.columns:
-    #         if 'Count' in col:
-    #             stats[col] = "{:.0f}".format(stats[col])
-    #         elif 'Rate' in col:
-    #             stats[col] = "{:.2f %}".format(stats[col])
-    #         elif 'Payoff' in col:
-    #             stats[col] = "{:.2f %}".format(stats[col])
-        # st.dataframe(stats[['Balance', 'Count', 'WinRate', 'PayoffRatio', *COL]])
-    st.dataframe(stats[['Balance', 'Count', *COL]].iloc[::-1], use_container_width=True)

@@ -8,6 +8,13 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
 def fetch_data():
+    print("""
+    # ------------------------------------
+    # Connect to Google Sheet
+    # and fetch trades data
+    # for Trading Dashboard 
+    # ------------------------------------
+    """)
     gc = gs.service_account_from_dict(st.secrets['gcp_service_account'])
     ss = gc.open_by_key(st.secrets['trading'].spreadsheet_key)
     trades = pd.DataFrame(ss.worksheet('Trades').get_values('A:AD'))
@@ -17,7 +24,7 @@ def fetch_data():
     return trades
 
 
-def compute_stats(df: pd.DataFrame, all_stats=True):
+def compute_stats(df: pd.DataFrame, only_balances=False):
     trades = pd.DataFrame(index=df.index, columns=pd.MultiIndex(levels=[[],[]], codes=[[],[]]))
     trades['Date', '.'] = df['Date']
 
@@ -31,7 +38,7 @@ def compute_stats(df: pd.DataFrame, all_stats=True):
             trades.loc[idx, ('Gain', period)] = df.loc[idx, 'Gain']
             trades.loc[idx, ('Balance', period)] = np.sum(trades.loc[:idx, ('Gain', period)])
             
-            if all_stats:
+            if not only_balances:
                 trades.loc[idx, ('Count', period)] = trades.loc[:idx, ('Gain', period)].count()
 
                 for result in ['SL', 'BE', 'TP']:
