@@ -19,8 +19,8 @@ def fetch_data():
     ss = gc.open_by_key(st.secrets['trading'].spreadsheet_key)
     trades = pd.DataFrame(ss.worksheet('Trades').get_values('A:AD'))
     trades = pd.DataFrame(trades.values[1:], columns=trades.iloc[0])
-    trades = trades.astype({'Date': 'datetime64[ns]', 'Gain': 'float64'})
-    trades = trades.sort_values('Date').reset_index(drop=True)[['Date', 'Gain', 'Result']]
+    trades = trades.astype({'Date': 'datetime64[ns]', 'Gain': 'float64', 'Risque': 'float64'})
+    trades = trades.sort_values('Date').reset_index(drop=True)[['Date', 'Gain', 'Result', 'Risque']]
     return trades
 
 
@@ -55,6 +55,6 @@ def compute_stats(df: pd.DataFrame, only_balances=False):
 def convert_to_time(df: pd.DataFrame):
     return pd.concat([
         pd.DataFrame({'Date': pd.date_range(start=df['Date'].min(), end=df['Date'].max())}).set_index('Date'),
-        df.set_index('Date').groupby('Date').agg({'Gain': 'sum'}),
+        df.set_index('Date').groupby('Date').agg({'Gain': 'sum', 'Risque': 'sum'}),
     ], axis=1)
 
