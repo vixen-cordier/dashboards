@@ -12,9 +12,9 @@ from api import *
 @st.experimental_memo 
 def get_data():
     data, dict = fetch_data()
-    data = build_data(data)
+    data = build_data(data, dict)
     detail = split_data(data, dict)
-    postes, result = concat_data(detail, dict)
+    postes, result = concat_data(detail)
     return detail, postes, result
 
 detail, postes, result = get_data()
