@@ -6,13 +6,12 @@ import plotly.graph_objects as go
 
 from api import *
 
-@st.experimental_memo
+@st.cache_data
 def get_data(): 
     return build_data()
 
 data, assets = get_data()
 
-st.title("Portfolio Dashboard")
 st.write("""
 <style>
 button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
@@ -21,6 +20,13 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 }
 </style>
 """, unsafe_allow_html=True)
+
+title, refresh = st.columns([9, 1])
+with title:
+    st.title("Portfolio Dashboard")
+with refresh:
+    if st.button('Refresh'):
+        st.cache_data.clear()
 
 
 PTFS = np.unique(data.columns.get_level_values(0))
