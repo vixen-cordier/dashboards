@@ -33,13 +33,14 @@ def fetch_data():
     return data, dict
 
 
-def build_data(data: pd.DataFrame):
+def build_data(data: pd.DataFrame, dict: Dict):
     print("""
     # --------------------------------- #
     # Filter, clean and aggregate data  #
     # --------------------------------- #
     """)
     data = data[data['Catégorie'] != ""]
+    data['Poste'] = data['Catégorie'].apply(lambda category: dict[category])
     data['Date'] = pd.to_datetime(data['Date & heure'], format='%d/%m/%Y %H:%M')
     data['Année'] = data['Date'].dt.year
     data['Mois'] = data['Date'].dt.month
@@ -47,7 +48,7 @@ def build_data(data: pd.DataFrame):
     data['Lucie'] = data['Impacté à Lucie']
     data['Vincent'] = data['Impacté à Vincent']
 
-    data = data.groupby(['Année', 'Mois', 'Catégorie']).agg({'Lucie': "sum", 'Vincent': "sum"})
+    data = data.groupby(['Année', 'Mois', 'Poste', 'Catégorie']).agg({'Lucie': "sum", 'Vincent': "sum"})
     data['Total'] = data['Lucie'] + data['Vincent']
 
     print(" -- data built")
@@ -68,25 +69,25 @@ def split_data(data: pd.DataFrame, dict: Dict):
     for year in sorted(years, reverse=True):
         df = data.loc[year,:,:]
         months = df.index.get_level_values('Mois').unique().tolist()
-        detail[f'{year} (sum)'] = df.groupby('Catégorie').sum()
+        detail[f'{year} (sum)'] = df.groupby(['Poste', 'Catégorie']).sum()
         detail[f'{year} (mean)'] = detail[f'{year} (sum)'] / len(months)
 
         for month in sorted(months, reverse=True):
             period = f'{year} {cd.month_name[month]}'
-            detail[period] = df.loc[month,:].groupby('Catégorie').sum()
+            detail[period] = df.loc[month,:].groupby(['Poste', 'Catégorie']).sum()
 
     for period in detail.keys():
         for category in set(dict.keys()):
-            if category not in detail[period].index:
-                detail[period].loc[category] = [pd.NA, pd.NA, pd.NA]
+            if (dict[category], category) not in detail[period].index:
+                detail[period].loc[(dict[category], category), :] = [pd.NA, pd.NA, pd.NA]
 
     for period in detail.keys():
-        detail[period] = detail[period].sort_index()
+        detail[period] = detail[period].sort_index(level=['Poste', 'Catégorie'])
 
     return detail
 
 
-def concat_data(detail: Dict[str, pd.DataFrame], dict: pd.DataFrame):
+def concat_data(detail: Dict[str, pd.DataFrame]):
     print("""
     # --------------------------------- #
     # Build the overview result         #
@@ -96,7 +97,6 @@ def concat_data(detail: Dict[str, pd.DataFrame], dict: pd.DataFrame):
     result: Dict[str, pd.DataFrame] = {}
     for period in detail.keys():
         dfp = detail[period].reset_index()
-        dfp['Poste'] = dfp['Catégorie'].apply(lambda category: dict[category])
         dfp = dfp.set_index('Poste')[['Total', 'Lucie', 'Vincent']]
         dfp = dfp.groupby('Poste').sum()
         postes[period] = dfp.copy()

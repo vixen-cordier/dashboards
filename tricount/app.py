@@ -12,9 +12,9 @@ from api import *
 @st.experimental_memo 
 def get_data():
     data, dict = fetch_data()
-    data = build_data(data)
+    data = build_data(data, dict)
     detail = split_data(data, dict)
-    postes, result = concat_data(detail, dict)
+    postes, result = concat_data(detail)
     return detail, postes, result
 
 detail, postes, result = get_data()
@@ -122,7 +122,7 @@ else:
     with graph:
         fig = go.Figure()
         for metric in [m for m in df.columns if m in ['Revenus', 'Dépenses', 'Reste à vivre', 'Capital investi', 'Epargne']]:
-            fig.add_trace(go.Scatter(x=df.index.tolist(), y=np.abs(df[metric].values.tolist()), name=metric))
+            fig.add_trace(go.Scatter(x=df.index.tolist()[::-1], y=np.abs(df[metric].values.tolist()[::-1]), name=metric))
         st.plotly_chart(fig)
 
     st.subheader("Budget")
@@ -142,7 +142,7 @@ else:
     with graph:
         fig = go.Figure()
         for metric in df.columns:
-            fig.add_trace(go.Scatter(x=df.index.tolist(), y=np.abs(df[metric].values.tolist()), name=metric))
+            fig.add_trace(go.Scatter(x=df.index.tolist()[::-1], y=np.abs(df[metric].values.tolist()[::-1]), name=metric))
         st.plotly_chart(fig)
 
 
