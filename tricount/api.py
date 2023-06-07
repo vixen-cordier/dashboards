@@ -48,13 +48,15 @@ def build_data(data: pd.DataFrame, dict: Dict):
     data['Lucie'] = data['Impacté à Lucie']
     data['Vincent'] = data['Impacté à Vincent']
 
+    brut = data.copy()[['Date', 'Titre', 'Poste', 'Catégorie', 'Payé par', 'Impacté à Lucie', 'Impacté à Vincent']]
+
     data = data.groupby(['Année', 'Mois', 'Poste', 'Catégorie']).agg({'Lucie': "sum", 'Vincent': "sum"})
     data['Total'] = data['Lucie'] + data['Vincent']
 
     print(" -- data built")
     print(data.shape)
     print(data.columns)
-    return data[['Total', 'Lucie', 'Vincent']]
+    return brut, data[['Total', 'Lucie', 'Vincent']]
 
 
 def split_data(data: pd.DataFrame, dict: Dict):

@@ -9,15 +9,15 @@ warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 from api import *
 
-@st.experimental_memo 
+@st.cache_data
 def get_data():
     data, dict = fetch_data()
-    data = build_data(data, dict)
+    brut, data = build_data(data, dict)
     detail = split_data(data, dict)
     postes, result = concat_data(detail)
-    return detail, postes, result
+    return brut, detail, postes, result
 
-detail, postes, result = get_data()
+brut, detail, postes, result = get_data()
 
 PEOPLES = ['Total', 'Lucie', 'Vincent']
 periods = []
@@ -36,7 +36,6 @@ print("""
 """)
 
 
-st.title(f"Tricount Dashboard : {people}")
 st.write("""
 <style>
 button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
@@ -44,6 +43,13 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 }
 </style>
 """, unsafe_allow_html=True)
+
+title, refresh = st.columns([9, 1])
+with title:
+    st.title(f"Tricount Dashboard : {people}")
+with refresh:
+    if st.button('Refresh'):
+        st.cache_data.clear()
 
 
 if len(periods) == 0:
@@ -72,12 +78,12 @@ else:
             result[period_graph][people][['Capital investi', 'Epargne']],
         ])
         colors = ['firebrick', 'dodgerblue', 'gold']
-        colors_bis = colors
-        for i, idx in enumerate(df.index):
-            if df[idx] < 0:
-                st.write(f"/!\ {idx} = {df[idx]} € < 0")
-                df = df.drop(idx)
-                colors.remove(colors_bis[i])
+        colors_bis = colors.copy()
+        for i in reversed(range(0,df.shape[0])):
+            if df[i] <= 0:
+                st.write(f"/!\ {df.index[i]} = {df[i]} € <= 0")
+                df = df.drop(df.index[i])
+                colors.remove(colors_bis[i])  
         st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list(), marker=dict(colors=colors))), use_container_width=True)
 
     with col2:
@@ -87,12 +93,12 @@ else:
             result[period_graph][people][['Reste à vivre']],
         ])
         colors = ['chocolate', 'saddlebrown', 'sienna', 'peru', 'goldenrod']
-        colors_bis = colors
-        for i, idx in enumerate(df.index):
-            if df[idx] < 0:
-                st.write(f"/!\ {idx} = {df[idx]} € < 0")
-                df = df.drop(idx)
-                colors.remove(colors_bis[i])
+        colors_bis = colors.copy()
+        for i in reversed(range(0,df.shape[0])):
+            if df[i] <= 0:
+                st.write(f"/!\ {df.index[i]} = {df[i]} € <= 0")
+                df = df.drop(df.index[i])
+                colors.remove(colors_bis[i]) 
         st.plotly_chart(go.Figure(go.Pie(values=df.values, labels=df.index.to_list(), marker=dict(colors=colors))), use_container_width=True)
 
 
@@ -147,16 +153,13 @@ else:
 
 
     st.markdown('---')
-    st.header("Details")
+    st.header(f"Details : {people}")
     rows = {}
-    if people == 'Total':
-        peoples = []
-        for p in PEOPLES:
-            if st.checkbox(p, value=True, key=f'Details for {p}'):
-                peoples.append(p)
-    else:
-        peoples = people
-
     for i, period in enumerate(periods):
-        rows[period] = detail[period][peoples]
-    st.table(pd.concat(rows, axis=1).style.format("{:.0f}").highlight_null(props="color: transparent;"))
+        rows[period] = detail[period][people]
+    st.dataframe(pd.concat(rows, axis=1).style.format("{:.0f}").highlight_null(props="color: transparent;"), height=810)
+
+    st.subheader("All operation")
+    st.dataframe(brut)
+
+
