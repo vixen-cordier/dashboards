@@ -9,7 +9,8 @@ warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 from api import *
 
-@st.cache_data
+# @st.cache_data
+@st.experimental_memo
 def get_data():
     data, dict = fetch_data()
     brut, data = build_data(data, dict)
@@ -44,12 +45,13 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 </style>
 """, unsafe_allow_html=True)
 
-title, refresh = st.columns([9, 1])
-with title:
-    st.title(f"Tricount Dashboard : {people}")
-with refresh:
-    if st.button('Refresh'):
-        st.cache_data.clear()
+st.title(f"Tricount Dashboard : {people}")
+# title, refresh = st.columns([9, 1])
+# with title:
+#     st.title(f"Tricount Dashboard : {people}")
+# with refresh:
+#     if st.button('Refresh'):
+#         st.cache_data.clear()
 
 
 if len(periods) == 0:

@@ -5,7 +5,8 @@ import plotly.graph_objects as go
 
 from api import *
 
-@st.cache_data
+# @st.cache_data
+@st.experimental_memo
 def get_data():
     return fetch_data()
 
@@ -26,12 +27,13 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 </style>
 """, unsafe_allow_html=True)
 
-title, refresh = st.columns([9, 1])
-with title:
-    st.title("Trading Dashboard")
-with refresh:
-    if st.button('Refresh'):
-        st.cache_data.clear()
+st.title("Trading Dashboard")
+# title, refresh = st.columns([9, 1])
+# with title:
+#     st.title("Trading Dashboard")
+# with refresh:
+#     if st.button('Refresh'):
+#         st.cache_data.clear()
 
 manage_axis, _, manage_graph = st.columns([5,1,5])
 
