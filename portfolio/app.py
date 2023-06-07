@@ -6,7 +6,8 @@ import plotly.graph_objects as go
 
 from api import *
 
-@st.cache_data
+# @st.cache_data
+@st.experimental_memo
 def get_data(): 
     return build_data()
 
@@ -21,12 +22,13 @@ button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
 </style>
 """, unsafe_allow_html=True)
 
-title, refresh = st.columns([9, 1])
-with title:
-    st.title("Portfolio Dashboard")
-with refresh:
-    if st.button('Refresh'):
-        st.cache_data.clear()
+st.title("Portfolio Dashboard")
+# title, refresh = st.columns([9, 1])
+# with title:
+#     st.title("Portfolio Dashboard")
+# with refresh:
+#     if st.button('Refresh'):
+#         st.cache_data.clear()
 
 
 PTFS = np.unique(data.columns.get_level_values(0))
