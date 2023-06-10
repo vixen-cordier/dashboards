@@ -12,20 +12,16 @@ from api import *
 # @st.cache_data
 @st.experimental_memo
 def get_data():
-    data, dict = fetch_data()
-    brut, data = build_data(data, dict)
-    detail = split_data(data, dict)
-    postes, result = concat_data(detail)
-    return brut, detail, postes, result
+    return build_data()
 
-brut, detail, postes, result = get_data()
+operations, categories, postes, result = get_data()
 
 PEOPLES = ['Total', 'Lucie', 'Vincent']
 periods = []
 with st.sidebar:
     people = st.radio("Choose", PEOPLES)
     st.markdown('---')
-    for period in detail.keys():
+    for period in categories.keys():
         if st.checkbox(period):
             periods.append(period)
 
@@ -155,13 +151,17 @@ else:
 
 
     st.markdown('---')
-    st.header(f"Details : {people}")
+    st.header(f"Categories : {people}")
     rows = {}
     for i, period in enumerate(periods):
-        rows[period] = detail[period][people]
-    st.dataframe(pd.concat(rows, axis=1).style.format("{:.0f}").highlight_null(props="color: transparent;"), height=810)
+        rows[period] = categories[period][people]
+    st.dataframe(pd.concat(rows, axis=1).style.format("{:.0f}").highlight_null(props="color: transparent;"), height=850)
 
-    st.subheader("All operation")
-    st.dataframe(brut)
+    st.markdown('---')
+    st.header("All operations")
+    df = pd.DataFrame(columns=operations.columns)
+    for i, period in enumerate(periods):
+        df = pd.concat([df, operations[operations['Period'] == period]])
+    st.dataframe(df[['Date', 'Titre', 'Poste', 'Catégorie', 'Payé par', 'Impacté à Lucie', 'Impacté à Vincent']], use_container_width=True)
 
 
